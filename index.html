@@ -3,19 +3,20 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Sortierhilfe V2: 5 erkennen</title>
+  <title>Sortierhilfe V3: 5 erkennen</title>
   <style>
     body { margin:0; font-family:Arial,sans-serif; background:#111; color:#fff; }
-    header { padding:14px 18px; background:#222; display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+    header { padding:14px 18px; background:#222; display:flex; gap:10px; align-items:center; flex-wrap:wrap; position:sticky; top:0; z-index:5; }
     button, select, input { font-size:15px; padding:8px 10px; border-radius:8px; border:1px solid #555; }
     button { cursor:pointer; background:#eee; color:#111; }
     button.danger { background:#ffdddd; }
+    button.blue { background:#dcecff; }
     main { display:grid; grid-template-columns:1.5fr 1fr; gap:16px; padding:16px; }
     .panel { background:#1d1d1d; border-radius:14px; padding:14px; }
     .videoBox { position:relative; width:100%; max-width:900px; margin:auto; }
     video, canvas { width:100%; border-radius:12px; background:#000; }
     #overlay { position:absolute; left:0; top:0; pointer-events:none; }
-    #status { font-size:50px; font-weight:800; text-align:center; padding:28px 10px; border-radius:14px; margin-bottom:14px; background:#555; }
+    #status { font-size:48px; font-weight:800; text-align:center; padding:26px 10px; border-radius:14px; margin-bottom:14px; background:#555; }
     .red { background:#c00000 !important; }
     .green { background:#008a22 !important; }
     .orange { background:#c77700 !important; }
@@ -24,7 +25,42 @@
     .hint { color:#ccc; line-height:1.45; font-size:15px; }
     .smallCanvas { width:160px; height:160px; border:1px solid #444; border-radius:10px; background:#000; image-rendering:pixelated; }
     .counter { font-size:20px; font-weight:bold; }
-    @media(max-width:900px){ main{grid-template-columns:1fr;} #status{font-size:36px;} }
+
+    .settingsWindow {
+      position:fixed;
+      right:20px;
+      top:82px;
+      width:380px;
+      max-width:calc(100vw - 40px);
+      max-height:calc(100vh - 110px);
+      overflow:auto;
+      background:#252525;
+      border:1px solid #555;
+      border-radius:16px;
+      box-shadow:0 12px 40px rgba(0,0,0,.55);
+      z-index:20;
+      display:none;
+    }
+    .settingsWindow.open { display:block; }
+    .settingsHeader {
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      padding:12px 14px;
+      border-bottom:1px solid #444;
+      background:#303030;
+      border-radius:16px 16px 0 0;
+      cursor:move;
+    }
+    .settingsBody { padding:14px; }
+    .setting { margin-bottom:16px; }
+    .setting label { display:flex; justify-content:space-between; gap:8px; margin-bottom:6px; font-weight:bold; }
+    .setting input[type="range"] { width:100%; }
+    .setting small { display:block; color:#bbb; margin-top:4px; line-height:1.35; }
+    .checkboxRow { display:flex; align-items:center; gap:10px; margin:10px 0; }
+    .miniGrid { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+
+    @media(max-width:900px){ main{grid-template-columns:1fr;} #status{font-size:34px;} }
   </style>
 </head>
 <body>
@@ -34,9 +70,74 @@
   <button id="save5Btn">+ 5 speichern</button>
   <button id="saveNot5Btn">+ Nicht-5 speichern</button>
   <button id="clearBtn" class="danger">Muster löschen</button>
-  <label>Schwelle <input id="threshold" type="range" min="0.35" max="0.95" step="0.01" value="0.55"></label>
-  <span id="thresholdValue">0.55</span>
+  <button id="settingsBtn" class="blue">Kameraeinstellungen</button>
+  <label>Schwelle <input id="threshold" type="range" min="0.20" max="0.95" step="0.01" value="0.50"></label>
+  <span id="thresholdValue">0.50</span>
 </header>
+
+<div id="settingsWindow" class="settingsWindow">
+  <div id="settingsHeader" class="settingsHeader">
+    <strong>Kameraeinstellungen</strong>
+    <button id="closeSettingsBtn">X</button>
+  </div>
+  <div class="settingsBody">
+    <div class="setting">
+      <label><span>ROI-Grösse</span><span id="roiScaleValue">22%</span></label>
+      <input id="roiScale" type="range" min="10" max="45" step="1" value="22">
+      <small>Je kleiner, desto mehr Fokus auf die Zahl. Wenn Löcher sichtbar sind: kleiner stellen.</small>
+    </div>
+
+    <div class="setting">
+      <label><span>ROI horizontal</span><span id="roiXValue">0</span></label>
+      <input id="roiX" type="range" min="-40" max="40" step="1" value="0">
+      <small>Verschiebt den Prüfausschnitt nach links/rechts.</small>
+    </div>
+
+    <div class="setting">
+      <label><span>ROI vertikal</span><span id="roiYValue">0</span></label>
+      <input id="roiY" type="range" min="-40" max="40" step="1" value="0">
+      <small>Verschiebt den Prüfausschnitt nach oben/unten.</small>
+    </div>
+
+    <div class="setting">
+      <label><span>Weichzeichnen</span><span id="blurValue">2</span></label>
+      <input id="blurLevel" type="range" min="0" max="8" step="1" value="2">
+      <small>Reduziert Rauschen. Bei unscharfer Zahl nicht zu hoch stellen.</small>
+    </div>
+
+    <div class="setting">
+      <label><span>Schwarz-Weiss-Offset</span><span id="bwOffsetValue">0</span></label>
+      <input id="bwOffset" type="range" min="-60" max="60" step="1" value="0">
+      <small>Hilft, wenn die Zahl zu hell oder zu dunkel erkannt wird.</small>
+    </div>
+
+    <div class="setting">
+      <label><span>Kanten-Empfindlichkeit</span><span id="edgeValue">1</span></label>
+      <input id="edgeSensitivity" type="range" min="1" max="5" step="1" value="1">
+      <small>Höher = nur stärkere Kanten. Wenn zu viel Rauschen sichtbar ist: erhöhen.</small>
+    </div>
+
+    <div class="setting">
+      <label><span>Mindest-Differenz</span><span id="minDiffValue">0.035</span></label>
+      <input id="minDiff" type="range" min="0.000" max="0.120" step="0.005" value="0.035">
+      <small>Höher = weniger falsche rote Treffer, aber mehr Orange/Unsicher.</small>
+    </div>
+
+    <div class="checkboxRow">
+      <input id="rotationOn" type="checkbox" checked>
+      <label for="rotationOn">Rotationstoleranz aktiv</label>
+    </div>
+
+    <div class="miniGrid">
+      <button id="presetNumberBtn">Preset: Zahl</button>
+      <button id="presetStableBtn">Preset: Stabil</button>
+    </div>
+
+    <p class="hint">
+      Vorgehen: ROI so klein machen, dass fast nur die Prägung sichtbar ist. Danach Weichzeichnen und Kanten so einstellen, dass im verarbeiteten Prüfbild hauptsächlich die Zahl sichtbar bleibt.
+    </p>
+  </div>
+</div>
 
 <main>
   <section class="panel">
@@ -45,8 +146,8 @@
       <canvas id="overlay"></canvas>
     </div>
     <p class="hint">
-      Version 2: Diese Seite nutzt einen kleineren Bildspeicher, Kanten/Schwarz-Weiss-Vorverarbeitung und leichte Rotationstoleranz.
-      Trotzdem gilt: Die Vorrichtung ist entscheidend. Die Zahl muss möglichst immer gleich im weissen Rahmen liegen.
+      Version 3: ROI, Weichzeichnen und Kanten kannst du live im Fenster „Kameraeinstellungen“ einstellen.
+      Ziel: Im verarbeiteten Prüfbild soll möglichst nur die geprägte Zahl sichtbar sein, nicht die Löcher.
     </p>
   </section>
 
@@ -66,7 +167,7 @@
     <canvas id="processedCanvas" class="smallCanvas" width="64" height="64"></canvas>
 
     <p class="hint">
-      Training: zuerst 20–40 Muster der 5 speichern, danach 40–80 Nicht-5-Muster mit 1,2,3,4,6,7,8. Bei falschen Treffern genau diesen Fall zusätzlich als Nicht-5 speichern.
+      Wichtig: Nach grossen Änderungen bei ROI/Weichzeichnen/Kanten die Muster löschen und neu speichern.
     </p>
   </section>
 </main>
@@ -75,7 +176,6 @@
 const SAMPLE_SIZE = 64;
 const MAX_TEMPLATES_PER_GROUP = 100;
 const ROTATION_ANGLES = [-8, -4, 0, 4, 8];
-const MIN_DIFF = 0.035;
 
 const video = document.getElementById('video');
 const overlay = document.getElementById('overlay');
@@ -100,18 +200,124 @@ const countNot5El = document.getElementById('countNot5');
 const thresholdSlider = document.getElementById('threshold');
 const thresholdValue = document.getElementById('thresholdValue');
 
+const settingsBtn = document.getElementById('settingsBtn');
+const settingsWindow = document.getElementById('settingsWindow');
+const closeSettingsBtn = document.getElementById('closeSettingsBtn');
+const settingsHeader = document.getElementById('settingsHeader');
+
+const roiScaleEl = document.getElementById('roiScale');
+const roiXEl = document.getElementById('roiX');
+const roiYEl = document.getElementById('roiY');
+const blurLevelEl = document.getElementById('blurLevel');
+const bwOffsetEl = document.getElementById('bwOffset');
+const edgeSensitivityEl = document.getElementById('edgeSensitivity');
+const minDiffEl = document.getElementById('minDiff');
+const rotationOnEl = document.getElementById('rotationOn');
+
+const roiScaleValue = document.getElementById('roiScaleValue');
+const roiXValue = document.getElementById('roiXValue');
+const roiYValue = document.getElementById('roiYValue');
+const blurValue = document.getElementById('blurValue');
+const bwOffsetValue = document.getElementById('bwOffsetValue');
+const edgeValue = document.getElementById('edgeValue');
+const minDiffValue = document.getElementById('minDiffValue');
+
+const presetNumberBtn = document.getElementById('presetNumberBtn');
+const presetStableBtn = document.getElementById('presetStableBtn');
+
 let stream = null;
-let templates5 = loadTemplates('templates5_v2');
-let templatesNot5 = loadTemplates('templatesNot5_v2');
+let templates5 = loadTemplates('templates5_v3');
+let templatesNot5 = loadTemplates('templatesNot5_v3');
 let threshold = Number(thresholdSlider.value);
 let loopStarted = false;
+let settings = loadSettings();
 
+applySettingsToControls();
 updateCounts();
 
 thresholdSlider.addEventListener('input', () => {
   threshold = Number(thresholdSlider.value);
   thresholdValue.textContent = threshold.toFixed(2);
 });
+
+settingsBtn.addEventListener('click', () => settingsWindow.classList.toggle('open'));
+closeSettingsBtn.addEventListener('click', () => settingsWindow.classList.remove('open'));
+
+[roiScaleEl, roiXEl, roiYEl, blurLevelEl, bwOffsetEl, edgeSensitivityEl, minDiffEl, rotationOnEl].forEach(el => {
+  el.addEventListener('input', readSettingsFromControls);
+  el.addEventListener('change', readSettingsFromControls);
+});
+
+presetNumberBtn.addEventListener('click', () => {
+  settings.roiScale = 18;
+  settings.roiX = 0;
+  settings.roiY = 0;
+  settings.blurLevel = 2;
+  settings.bwOffset = 0;
+  settings.edgeSensitivity = 2;
+  settings.minDiff = 0.035;
+  settings.rotationOn = true;
+  saveSettings();
+  applySettingsToControls();
+});
+
+presetStableBtn.addEventListener('click', () => {
+  settings.roiScale = 22;
+  settings.roiX = 0;
+  settings.roiY = 0;
+  settings.blurLevel = 4;
+  settings.bwOffset = 5;
+  settings.edgeSensitivity = 3;
+  settings.minDiff = 0.055;
+  settings.rotationOn = false;
+  saveSettings();
+  applySettingsToControls();
+});
+
+function loadSettings() {
+  const defaults = { roiScale:22, roiX:0, roiY:0, blurLevel:2, bwOffset:0, edgeSensitivity:1, minDiff:0.035, rotationOn:true };
+  try { return {...defaults, ...JSON.parse(localStorage.getItem('cameraSettings_v3') || '{}')}; }
+  catch { return defaults; }
+}
+
+function saveSettings() {
+  localStorage.setItem('cameraSettings_v3', JSON.stringify(settings));
+}
+
+function applySettingsToControls() {
+  roiScaleEl.value = settings.roiScale;
+  roiXEl.value = settings.roiX;
+  roiYEl.value = settings.roiY;
+  blurLevelEl.value = settings.blurLevel;
+  bwOffsetEl.value = settings.bwOffset;
+  edgeSensitivityEl.value = settings.edgeSensitivity;
+  minDiffEl.value = settings.minDiff;
+  rotationOnEl.checked = settings.rotationOn;
+  updateSettingLabels();
+}
+
+function readSettingsFromControls() {
+  settings.roiScale = Number(roiScaleEl.value);
+  settings.roiX = Number(roiXEl.value);
+  settings.roiY = Number(roiYEl.value);
+  settings.blurLevel = Number(blurLevelEl.value);
+  settings.bwOffset = Number(bwOffsetEl.value);
+  settings.edgeSensitivity = Number(edgeSensitivityEl.value);
+  settings.minDiff = Number(minDiffEl.value);
+  settings.rotationOn = rotationOnEl.checked;
+  updateSettingLabels();
+  saveSettings();
+}
+
+function updateSettingLabels() {
+  roiScaleValue.textContent = `${settings.roiScale}%`;
+  roiXValue.textContent = settings.roiX;
+  roiYValue.textContent = settings.roiY;
+  blurValue.textContent = settings.blurLevel;
+  bwOffsetValue.textContent = settings.bwOffset;
+  edgeValue.textContent = settings.edgeSensitivity;
+  minDiffValue.textContent = Number(settings.minDiff).toFixed(3);
+}
 
 function setStatus(text, cls) {
   statusBox.textContent = text;
@@ -157,10 +363,10 @@ async function startCamera() {
 function getRoiRect() {
   const w = video.videoWidth;
   const h = video.videoHeight;
-  const size = Math.round(Math.min(w, h) * 0.36);
-  const x = Math.round((w - size) / 2);
-  const y = Math.round((h - size) / 2);
-  return { x, y, size };
+  const size = Math.round(Math.min(w, h) * (settings.roiScale / 100));
+  const x = Math.round((w - size) / 2 + (settings.roiX / 100) * w);
+  const y = Math.round((h - size) / 2 + (settings.roiY / 100) * h);
+  return { x:Math.max(0, Math.min(w-size, x)), y:Math.max(0, Math.min(h-size, y)), size };
 }
 
 function drawOverlay() {
@@ -196,9 +402,10 @@ function captureRoiRaw() {
 function captureProcessedVariants() {
   const rect = captureRoiRaw();
   if (!rect) return [];
+  const angles = settings.rotationOn ? ROTATION_ANGLES : [0];
   const variants = [];
 
-  for (const angle of ROTATION_ANGLES) {
+  for (const angle of angles) {
     const temp = document.createElement('canvas');
     temp.width = SAMPLE_SIZE;
     temp.height = SAMPLE_SIZE;
@@ -216,7 +423,7 @@ function captureProcessedVariants() {
 function preprocess(imageData, drawPreview=false) {
   const data = imageData.data;
   const pixelCount = imageData.width * imageData.height;
-  const gray = new Float32Array(pixelCount);
+  let gray = new Float32Array(pixelCount);
   let sum = 0;
 
   for (let i=0,j=0; i<data.length; i+=4,j++) {
@@ -225,27 +432,62 @@ function preprocess(imageData, drawPreview=false) {
     sum += g;
   }
 
+  gray = boxBlur(gray, SAMPLE_SIZE, SAMPLE_SIZE, settings.blurLevel);
+
+  sum = 0;
+  for (let i=0; i<gray.length; i++) sum += gray[i];
   const mean = sum / pixelCount;
+  const limit = mean + settings.bwOffset;
   const binary = new Uint8Array(pixelCount);
 
-  // Schwarz/Weiss-Bild gegen Lichtschwankungen.
-  for (let i=0; i<pixelCount; i++) {
-    binary[i] = gray[i] < mean ? 1 : 0;
-  }
+  for (let i=0; i<pixelCount; i++) binary[i] = gray[i] < limit ? 1 : 0;
 
-  // Einfache Kantenlogik: nur Übergänge bleiben stark sichtbar.
   const edge = new Float32Array(pixelCount);
+  const sens = settings.edgeSensitivity;
   for (let y=1; y<SAMPLE_SIZE-1; y++) {
     for (let x=1; x<SAMPLE_SIZE-1; x++) {
       const idx = y*SAMPLE_SIZE+x;
-      const gx = binary[idx+1] - binary[idx-1];
-      const gy = binary[idx+SAMPLE_SIZE] - binary[idx-SAMPLE_SIZE];
-      edge[idx] = Math.abs(gx) + Math.abs(gy) > 0 ? 1 : 0;
+      let changes = 0;
+      changes += binary[idx] !== binary[idx-1] ? 1 : 0;
+      changes += binary[idx] !== binary[idx+1] ? 1 : 0;
+      changes += binary[idx] !== binary[idx-SAMPLE_SIZE] ? 1 : 0;
+      changes += binary[idx] !== binary[idx+SAMPLE_SIZE] ? 1 : 0;
+      edge[idx] = changes >= sens ? 1 : 0;
     }
   }
 
   if (drawPreview) drawProcessed(edge);
   return edge;
+}
+
+function boxBlur(src, w, h, level) {
+  if (level <= 0) return src;
+  let current = src;
+  const radius = Math.min(4, level);
+  const passes = level <= 4 ? 1 : 2;
+
+  for (let pass=0; pass<passes; pass++) {
+    const out = new Float32Array(src.length);
+    for (let y=0; y<h; y++) {
+      for (let x=0; x<w; x++) {
+        let sum = 0;
+        let count = 0;
+        for (let dy=-radius; dy<=radius; dy++) {
+          for (let dx=-radius; dx<=radius; dx++) {
+            const xx = x + dx;
+            const yy = y + dy;
+            if (xx>=0 && xx<w && yy>=0 && yy<h) {
+              sum += current[yy*w+xx];
+              count++;
+            }
+          }
+        }
+        out[y*w+x] = sum / count;
+      }
+    }
+    current = out;
+  }
+  return current;
 }
 
 function drawProcessed(edge) {
@@ -285,7 +527,6 @@ function bestSimilarity(variants, templates) {
 
 function saveTemplates(key, templates) {
   try {
-    // Sehr kompakte Speicherung: 0/1 als Text je Muster statt grosse Float-Arrays.
     const packed = templates.map(t => Array.from(t).join(''));
     localStorage.setItem(key, JSON.stringify(packed));
   } catch(e) {
@@ -304,9 +545,7 @@ function loadTemplates(key) {
       for (let i=0; i<str.length; i++) arr[i] = str[i] === '1' ? 1 : 0;
       return arr;
     }).filter(t => t.length === SAMPLE_SIZE*SAMPLE_SIZE).slice(0, MAX_TEMPLATES_PER_GROUP);
-  } catch {
-    return [];
-  }
+  } catch { return []; }
 }
 
 function updateCounts() {
@@ -317,17 +556,17 @@ function updateCounts() {
 function addTemplate(groupName) {
   const variants = captureProcessedVariants();
   if (!variants.length) return;
-  const roi = variants[Math.floor(variants.length/2)]; // 0 Grad speichern; Rotation wird beim Prüfen erzeugt.
+  const roi = variants[Math.floor(variants.length/2)];
 
   if (groupName === '5') {
     if (templates5.length >= MAX_TEMPLATES_PER_GROUP) { alert('Maximal 100 Muster 5 gespeichert.'); return; }
     templates5.push(roi);
-    saveTemplates('templates5_v2', templates5);
+    saveTemplates('templates5_v3', templates5);
     setStatus('5 GESPEICHERT', 'orange');
   } else {
     if (templatesNot5.length >= MAX_TEMPLATES_PER_GROUP) { alert('Maximal 100 Muster Nicht-5 gespeichert.'); return; }
     templatesNot5.push(roi);
-    saveTemplates('templatesNot5_v2', templatesNot5);
+    saveTemplates('templatesNot5_v3', templatesNot5);
     setStatus('NICHT-5 GESPEICHERT', 'orange');
   }
   updateCounts();
@@ -339,6 +578,8 @@ clearBtn.addEventListener('click', () => {
   if (!confirm('Wirklich alle Muster löschen?')) return;
   templates5 = [];
   templatesNot5 = [];
+  localStorage.removeItem('templates5_v3');
+  localStorage.removeItem('templatesNot5_v3');
   localStorage.removeItem('templates5_v2');
   localStorage.removeItem('templatesNot5_v2');
   localStorage.removeItem('templates5');
@@ -370,8 +611,8 @@ function loop() {
     setStatus('NICHT-5 FEHLT', 'gray');
     decisionEl.textContent = 'Gutteile speichern';
   } else {
-    const isFive = s5 !== null && sN !== null && s5 >= threshold && diff >= MIN_DIFF;
-    const uncertain = s5 !== null && sN !== null && Math.abs(diff) < MIN_DIFF;
+    const isFive = s5 !== null && sN !== null && s5 >= threshold && diff >= settings.minDiff;
+    const uncertain = s5 !== null && sN !== null && Math.abs(diff) < settings.minDiff;
 
     if (isFive) {
       setStatus('ROT: 5 AUSSORTIEREN', 'red');
@@ -387,6 +628,21 @@ function loop() {
 
   requestAnimationFrame(loop);
 }
+
+// Fenster innerhalb der Seite verschiebbar machen
+let drag = null;
+settingsHeader.addEventListener('mousedown', e => {
+  if (e.target.tagName === 'BUTTON') return;
+  const rect = settingsWindow.getBoundingClientRect();
+  drag = { dx:e.clientX-rect.left, dy:e.clientY-rect.top };
+});
+window.addEventListener('mousemove', e => {
+  if (!drag) return;
+  settingsWindow.style.left = `${e.clientX - drag.dx}px`;
+  settingsWindow.style.top = `${e.clientY - drag.dy}px`;
+  settingsWindow.style.right = 'auto';
+});
+window.addEventListener('mouseup', () => drag = null);
 
 listCameras().catch(() => {});
 </script>
