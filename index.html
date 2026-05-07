@@ -5,104 +5,35 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Sortierhilfe: 5 erkennen</title>
   <style>
-    body {
-      margin: 0;
-      font-family: Arial, sans-serif;
-      background: #111;
-      color: #fff;
-    }
-    header {
-      padding: 14px 18px;
-      background: #222;
-      display: flex;
-      gap: 12px;
-      align-items: center;
-      flex-wrap: wrap;
-    }
-    button, select, input {
-      font-size: 16px;
-      padding: 8px 10px;
-      border-radius: 8px;
-      border: 1px solid #555;
-    }
-    button {
-      cursor: pointer;
-      background: #eee;
-      color: #111;
-    }
-    main {
-      display: grid;
-      grid-template-columns: 1.5fr 1fr;
-      gap: 16px;
-      padding: 16px;
-    }
-    .panel {
-      background: #1d1d1d;
-      border-radius: 14px;
-      padding: 14px;
-    }
-    .videoBox {
-      position: relative;
-      width: 100%;
-      max-width: 900px;
-      margin: auto;
-    }
-    video, canvas {
-      width: 100%;
-      border-radius: 12px;
-      background: #000;
-    }
-    #overlay {
-      position: absolute;
-      left: 0;
-      top: 0;
-      pointer-events: none;
-    }
-    #status {
-      font-size: 54px;
-      font-weight: 800;
-      text-align: center;
-      padding: 30px 10px;
-      border-radius: 14px;
-      margin-bottom: 14px;
-      background: #555;
-    }
+    body { margin: 0; font-family: Arial, sans-serif; background: #111; color: #fff; }
+    header { padding: 14px 18px; background: #222; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+    button, select, input { font-size: 16px; padding: 8px 10px; border-radius: 8px; border: 1px solid #555; }
+    button { cursor: pointer; background: #eee; color: #111; }
+    button.danger { background: #ffdddd; }
+    main { display: grid; grid-template-columns: 1.5fr 1fr; gap: 16px; padding: 16px; }
+    .panel { background: #1d1d1d; border-radius: 14px; padding: 14px; }
+    .videoBox { position: relative; width: 100%; max-width: 900px; margin: auto; }
+    video, canvas { width: 100%; border-radius: 12px; background: #000; }
+    #overlay { position: absolute; left: 0; top: 0; pointer-events: none; }
+    #status { font-size: 54px; font-weight: 800; text-align: center; padding: 30px 10px; border-radius: 14px; margin-bottom: 14px; background: #555; }
     .red { background: #c00000 !important; }
     .green { background: #008a22 !important; }
     .orange { background: #c77700 !important; }
     .gray { background: #555 !important; }
-    .row {
-      display: flex;
-      justify-content: space-between;
-      gap: 12px;
-      border-bottom: 1px solid #333;
-      padding: 8px 0;
-    }
-    .hint {
-      color: #ccc;
-      line-height: 1.45;
-      font-size: 15px;
-    }
-    .smallCanvas {
-      width: 160px;
-      height: 160px;
-      border: 1px solid #444;
-      border-radius: 10px;
-      background: #000;
-      image-rendering: pixelated;
-    }
-    @media (max-width: 900px) {
-      main { grid-template-columns: 1fr; }
-      #status { font-size: 38px; }
-    }
+    .row { display: flex; justify-content: space-between; gap: 12px; border-bottom: 1px solid #333; padding: 8px 0; }
+    .hint { color: #ccc; line-height: 1.45; font-size: 15px; }
+    .smallCanvas { width: 160px; height: 160px; border: 1px solid #444; border-radius: 10px; background: #000; image-rendering: pixelated; }
+    .counter { font-size: 20px; font-weight: bold; }
+    @media (max-width: 900px) { main { grid-template-columns: 1fr; } #status { font-size: 38px; } }
   </style>
 </head>
 <body>
   <header>
     <button id="startBtn">Kamera starten</button>
     <select id="cameraSelect"></select>
-    <button id="save5Btn">Muster 5 speichern</button>
-    <button id="saveNot5Btn">Muster NICHT-5 speichern</button>
+    <button id="save5Btn">+ Muster 5 speichern</button>
+    <button id="saveNot5Btn">+ Muster NICHT-5 speichern</button>
+    <button id="clearBtn" class="danger">Alle Muster löschen</button>
     <label>Schwelle <input id="threshold" type="range" min="0.40" max="0.95" step="0.01" value="0.62"></label>
     <span id="thresholdValue">0.62</span>
   </header>
@@ -114,34 +45,23 @@
         <canvas id="overlay"></canvas>
       </div>
       <p class="hint">
-        Lege die Prägung immer in den weissen Rahmen. Für den ersten Abgleich zuerst ein schlechtes Teil mit Zahl 5 einlegen und „Muster 5 speichern“ drücken. Danach ein gutes Teil, z. B. 1, 2, 3, 4, 6, 7 oder 8, einlegen und „Muster NICHT-5 speichern“ drücken.
+        Lege die Prägung immer in den weissen Rahmen. Speichere mehrere Beispiele: mindestens 10 schlechte Teile mit Zahl 5 und mindestens 20 gute Teile mit anderen Zahlen. Je mehr Varianten du speicherst, desto stabiler wird die Erkennung.
       </p>
     </section>
 
     <section class="panel">
       <div id="status" class="gray">START</div>
-      <div class="row"><span>Score 5</span><strong id="score5">-</strong></div>
-      <div class="row"><span>Score Nicht-5</span><strong id="scoreNot5">-</strong></div>
+      <div class="row"><span>Beste Übereinstimmung 5</span><strong id="score5">-</strong></div>
+      <div class="row"><span>Beste Übereinstimmung Nicht-5</span><strong id="scoreNot5">-</strong></div>
       <div class="row"><span>Entscheidung</span><strong id="decision">-</strong></div>
-      <div class="row"><span>Rahmen</span><strong>mittig</strong></div>
+      <div class="row"><span>Anzahl Muster 5</span><strong id="count5" class="counter">0</strong></div>
+      <div class="row"><span>Anzahl Muster Nicht-5</span><strong id="countNot5" class="counter">0</strong></div>
 
       <h3>Aktueller Ausschnitt</h3>
       <canvas id="roiCanvas" class="smallCanvas" width="160" height="160"></canvas>
 
-      <h3>Gespeicherte Muster</h3>
-      <div style="display:flex; gap:14px; flex-wrap:wrap;">
-        <div>
-          <div>Muster 5</div>
-          <canvas id="template5Canvas" class="smallCanvas" width="160" height="160"></canvas>
-        </div>
-        <div>
-          <div>Muster Nicht-5</div>
-          <canvas id="templateNot5Canvas" class="smallCanvas" width="160" height="160"></canvas>
-        </div>
-      </div>
-
       <p class="hint">
-        Wichtig: Licht fixieren, Kamera fixieren, Teil immer gleich ausrichten. Diese Version ist eine einfache Sortierhilfe, keine validierte 100%-Prüfanlage.
+        Empfehlung: Kamera und Licht fix montieren. Das Teil muss immer gleich liegen. Diese Version ist eine einfache Sortierhilfe, keine validierte 100%-Prüfanlage.
       </p>
     </section>
   </main>
@@ -152,26 +72,27 @@ const overlay = document.getElementById('overlay');
 const overlayCtx = overlay.getContext('2d');
 const roiCanvas = document.getElementById('roiCanvas');
 const roiCtx = roiCanvas.getContext('2d', { willReadFrequently: true });
-const template5Canvas = document.getElementById('template5Canvas');
-const template5Ctx = template5Canvas.getContext('2d', { willReadFrequently: true });
-const templateNot5Canvas = document.getElementById('templateNot5Canvas');
-const templateNot5Ctx = templateNot5Canvas.getContext('2d', { willReadFrequently: true });
 
 const startBtn = document.getElementById('startBtn');
 const save5Btn = document.getElementById('save5Btn');
 const saveNot5Btn = document.getElementById('saveNot5Btn');
+const clearBtn = document.getElementById('clearBtn');
 const cameraSelect = document.getElementById('cameraSelect');
 const statusBox = document.getElementById('status');
 const score5El = document.getElementById('score5');
 const scoreNot5El = document.getElementById('scoreNot5');
 const decisionEl = document.getElementById('decision');
+const count5El = document.getElementById('count5');
+const countNot5El = document.getElementById('countNot5');
 const thresholdSlider = document.getElementById('threshold');
 const thresholdValue = document.getElementById('thresholdValue');
 
 let stream = null;
-let template5 = loadTemplate('template5');
-let templateNot5 = loadTemplate('templateNot5');
+let templates5 = loadTemplates('templates5');
+let templatesNot5 = loadTemplates('templatesNot5');
 let threshold = Number(thresholdSlider.value);
+
+updateCounts();
 
 thresholdSlider.addEventListener('input', () => {
   threshold = Number(thresholdSlider.value);
@@ -248,8 +169,8 @@ function captureRoiToCanvas() {
 function preprocess(imageData) {
   const data = imageData.data;
   const gray = new Float32Array(160 * 160);
-
   let sum = 0;
+
   for (let i = 0, j = 0; i < data.length; i += 4, j++) {
     const g = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
     gray[j] = g;
@@ -262,9 +183,7 @@ function preprocess(imageData) {
   const std = Math.sqrt(varSum / gray.length) || 1;
 
   const norm = new Float32Array(gray.length);
-  for (let i = 0; i < gray.length; i++) {
-    norm[i] = (gray[i] - mean) / std;
-  }
+  for (let i = 0; i < gray.length; i++) norm[i] = (gray[i] - mean) / std;
   return norm;
 }
 
@@ -275,54 +194,61 @@ function similarity(a, b) {
   return dot / a.length;
 }
 
-function saveTemplate(key, canvas, ctx) {
-  const img = roiCtx.getImageData(0, 0, 160, 160);
-  ctx.putImageData(img, 0, 0);
-  const processed = preprocess(img);
-  localStorage.setItem(key, JSON.stringify(Array.from(processed)));
-  return processed;
+function bestSimilarity(current, templates) {
+  if (!templates || templates.length === 0) return null;
+  let best = -Infinity;
+  for (const t of templates) {
+    const s = similarity(current, t);
+    if (s !== null && s > best) best = s;
+  }
+  return best;
 }
 
-function loadTemplate(key) {
+function saveTemplates(key, templates) {
+  localStorage.setItem(key, JSON.stringify(templates.map(t => Array.from(t))));
+}
+
+function loadTemplates(key) {
   const raw = localStorage.getItem(key);
-  if (!raw) return null;
+  if (!raw) return [];
   try {
-    return new Float32Array(JSON.parse(raw));
+    return JSON.parse(raw).map(arr => new Float32Array(arr));
   } catch {
-    return null;
+    return [];
   }
 }
 
-function loadTemplatePreview() {
-  // Vorschau ist nach Browser-Neustart nicht verfügbar, die Vergleichsdaten aber schon.
-  if (template5) {
-    template5Ctx.fillStyle = '#222';
-    template5Ctx.fillRect(0, 0, 160, 160);
-    template5Ctx.fillStyle = '#fff';
-    template5Ctx.font = '18px Arial';
-    template5Ctx.fillText('Muster 5', 40, 82);
-  }
-  if (templateNot5) {
-    templateNot5Ctx.fillStyle = '#222';
-    templateNot5Ctx.fillRect(0, 0, 160, 160);
-    templateNot5Ctx.fillStyle = '#fff';
-    templateNot5Ctx.font = '18px Arial';
-    templateNot5Ctx.fillText('Nicht-5', 46, 82);
-  }
+function updateCounts() {
+  count5El.textContent = templates5.length;
+  countNot5El.textContent = templatesNot5.length;
 }
 
 save5Btn.addEventListener('click', () => {
   const roi = captureRoiToCanvas();
   if (!roi) return;
-  template5 = saveTemplate('template5', template5Canvas, template5Ctx);
+  templates5.push(roi);
+  saveTemplates('templates5', templates5);
+  updateCounts();
   setStatus('MUSTER 5 GESPEICHERT', 'orange');
 });
 
 saveNot5Btn.addEventListener('click', () => {
   const roi = captureRoiToCanvas();
   if (!roi) return;
-  templateNot5 = saveTemplate('templateNot5', templateNot5Canvas, templateNot5Ctx);
+  templatesNot5.push(roi);
+  saveTemplates('templatesNot5', templatesNot5);
+  updateCounts();
   setStatus('MUSTER NICHT-5 GESPEICHERT', 'orange');
+});
+
+clearBtn.addEventListener('click', () => {
+  if (!confirm('Wirklich alle gespeicherten Muster löschen?')) return;
+  templates5 = [];
+  templatesNot5 = [];
+  localStorage.removeItem('templates5');
+  localStorage.removeItem('templatesNot5');
+  updateCounts();
+  setStatus('MUSTER GELÖSCHT', 'gray');
 });
 
 startBtn.addEventListener('click', startCamera);
@@ -337,18 +263,18 @@ function loop() {
   drawOverlay();
   const roi = captureRoiToCanvas();
 
-  const s5 = similarity(roi, template5);
-  const sN = similarity(roi, templateNot5);
+  const s5 = bestSimilarity(roi, templates5);
+  const sN = bestSimilarity(roi, templatesNot5);
 
   score5El.textContent = s5 === null ? '-' : s5.toFixed(3);
   scoreNot5El.textContent = sN === null ? '-' : sN.toFixed(3);
 
-  if (!template5) {
+  if (templates5.length === 0) {
     setStatus('MUSTER 5 FEHLT', 'gray');
-    decisionEl.textContent = 'Bitte Muster 5 speichern';
+    decisionEl.textContent = 'Bitte mehrere 5er speichern';
   } else {
-    // Hauptlogik: Rot, wenn Muster 5 klar besser passt und ueber Schwelle liegt.
-    const isFive = s5 !== null && s5 >= threshold && (sN === null || s5 > sN + 0.03);
+    const distanceToNot5 = sN === null ? 0 : 0.03;
+    const isFive = s5 !== null && s5 >= threshold && (sN === null || s5 > sN + distanceToNot5);
 
     if (isFive) {
       setStatus('ROT: 5 AUSSORTIEREN', 'red');
@@ -365,7 +291,6 @@ function loop() {
   requestAnimationFrame(loop);
 }
 
-loadTemplatePreview();
 listCameras().catch(() => {});
 </script>
 </body>
