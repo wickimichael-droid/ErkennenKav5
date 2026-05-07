@@ -67,6 +67,9 @@
   </main>
 
 <script>
+const SAMPLE_SIZE = 64;
+const MAX_TEMPLATES_PER_GROUP = 100;
+
 const video = document.getElementById('video');
 const overlay = document.getElementById('overlay');
 const overlayCtx = overlay.getContext('2d');
@@ -162,13 +165,23 @@ function drawOverlay() {
 function captureRoiToCanvas() {
   if (!video.videoWidth) return null;
   const { x, y, size } = getRoiRect();
-  roiCtx.drawImage(video, x, y, size, size, 0, 0, 160, 160);
-  return preprocess(roiCtx.getImageData(0, 0, 160, 160));
+
+  // Anzeige weiterhin gross, Berechnung aber kleiner. Dadurch passen deutlich mehr Muster in den Browser-Speicher.
+  roiCtx.drawImage(video, x, y, size, size, 0, 0, roiCanvas.width, roiCanvas.height);
+
+  const temp = document.createElement('canvas');
+  temp.width = SAMPLE_SIZE;
+  temp.height = SAMPLE_SIZE;
+  const tempCtx = temp.getContext('2d', { willReadFrequently: true });
+  tempCtx.drawImage(video, x, y, size, size, 0, 0, SAMPLE_SIZE, SAMPLE_SIZE);
+
+  return preprocess(tempCtx.getImageData(0, 0, SAMPLE_SIZE, SAMPLE_SIZE));
 }
 
 function preprocess(imageData) {
   const data = imageData.data;
-  const gray = new Float32Array(160 * 160);
+  const pixelCount = imageData.width * imageData.height;
+  const gray = new Float32Array(pixelCount);
   let sum = 0;
 
   for (let i = 0, j = 0; i < data.length; i += 4, j++) {
@@ -183,7 +196,7 @@ function preprocess(imageData) {
   const std = Math.sqrt(varSum / gray.length) || 1;
 
   const norm = new Float32Array(gray.length);
-  for (let i = 0; i < gray.length; i++) norm[i] = (gray[i] - mean) / std;
+  for (let i = 0; i < gray.length; i++) norm[i] = Math.round(((gray[i] - mean) / std) * 100) / 100;
   return norm;
 }
 
@@ -205,41 +218,57 @@ function bestSimilarity(current, templates) {
 }
 
 function saveTemplates(key, templates) {
-  localStorage.setItem(key, JSON.stringify(templates.map(t => Array.from(t))));
+  try {
+    localStorage.setItem(key, JSON.stringify(templates.map(t => Array.from(t))));
+  } catch (e) {
+    alert('Speicher voll. Lösche einige Muster oder reduziere die Anzahl. Aktuell ist die Grenze bei ca. 100 pro Gruppe vorgesehen.');
+    throw e;
+  }
 }
 
 function loadTemplates(key) {
   const raw = localStorage.getItem(key);
   if (!raw) return [];
   try {
-    return JSON.parse(raw).map(arr => new Float32Array(arr));
+    const loaded = JSON.parse(raw).map(arr => new Float32Array(arr));
+    return loaded.filter(t => t.length === SAMPLE_SIZE * SAMPLE_SIZE).slice(0, MAX_TEMPLATES_PER_GROUP);
   } catch {
     return [];
   }
 }
 
 function updateCounts() {
-  count5El.textContent = templates5.length;
-  countNot5El.textContent = templatesNot5.length;
+  count5El.textContent = `${templates5.length} / ${MAX_TEMPLATES_PER_GROUP}`;
+  countNot5El.textContent = `${templatesNot5.length} / ${MAX_TEMPLATES_PER_GROUP}`;
 }
 
-save5Btn.addEventListener('click', () => {
+function addTemplate(groupName) {
   const roi = captureRoiToCanvas();
   if (!roi) return;
-  templates5.push(roi);
-  saveTemplates('templates5', templates5);
-  updateCounts();
-  setStatus('MUSTER 5 GESPEICHERT', 'orange');
-});
 
-saveNot5Btn.addEventListener('click', () => {
-  const roi = captureRoiToCanvas();
-  if (!roi) return;
-  templatesNot5.push(roi);
-  saveTemplates('templatesNot5', templatesNot5);
+  if (groupName === '5') {
+    if (templates5.length >= MAX_TEMPLATES_PER_GROUP) {
+      alert('Maximal 100 Muster für 5 gespeichert. Lösche alle Muster, wenn du neu trainieren willst.');
+      return;
+    }
+    templates5.push(roi);
+    saveTemplates('templates5', templates5);
+    setStatus('MUSTER 5 GESPEICHERT', 'orange');
+  } else {
+    if (templatesNot5.length >= MAX_TEMPLATES_PER_GROUP) {
+      alert('Maximal 100 Muster für Nicht-5 gespeichert. Lösche alle Muster, wenn du neu trainieren willst.');
+      return;
+    }
+    templatesNot5.push(roi);
+    saveTemplates('templatesNot5', templatesNot5);
+    setStatus('MUSTER NICHT-5 GESPEICHERT', 'orange');
+  }
+
   updateCounts();
-  setStatus('MUSTER NICHT-5 GESPEICHERT', 'orange');
-});
+}
+
+save5Btn.addEventListener('click', () => addTemplate('5'));
+saveNot5Btn.addEventListener('click', () => addTemplate('not5'));
 
 clearBtn.addEventListener('click', () => {
   if (!confirm('Wirklich alle gespeicherten Muster löschen?')) return;
