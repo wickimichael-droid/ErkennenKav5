@@ -435,15 +435,31 @@ function boxBlur(src,w,h,level) {
 }
 
 function drawProcessed(arr) {
-  const img = processedMainCtx.createImageData(SAMPLE_SIZE, SAMPLE_SIZE);
-  for (let i=0;i<arr.length;i++) {
+  const tempCanvas = document.createElement('canvas');
+  tempCanvas.width = SAMPLE_SIZE;
+  tempCanvas.height = SAMPLE_SIZE;
+  const tempCtx = tempCanvas.getContext('2d');
+
+  const img = tempCtx.createImageData(SAMPLE_SIZE, SAMPLE_SIZE);
+
+  for (let i = 0; i < arr.length; i++) {
     const v = Math.round(Math.max(0, Math.min(1, arr[i])) * 255);
-    img.data[i*4] = v;
-    img.data[i*4+1] = v;
-    img.data[i*4+2] = v;
-    img.data[i*4+3] = 255;
+    img.data[i * 4] = v;
+    img.data[i * 4 + 1] = v;
+    img.data[i * 4 + 2] = v;
+    img.data[i * 4 + 3] = 255;
   }
-  processedMainCtx.putImageData(img,0,0);
+
+  tempCtx.putImageData(img, 0, 0);
+
+  // 🔥 HIER IST DER FIX:
+  processedMainCtx.clearRect(0, 0, processedMainCanvas.width, processedMainCanvas.height);
+  processedMainCtx.drawImage(
+    tempCanvas,
+    0, 0,
+    processedMainCanvas.width,
+    processedMainCanvas.height
+  );
 }
 
 function loop() {
