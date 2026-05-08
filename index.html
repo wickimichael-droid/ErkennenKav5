@@ -14,7 +14,14 @@
     .panel { background:#1d1d1d; border-radius:14px; padding:14px; }
     .videoBox { position:relative; width:100%; max-width:1000px; margin:auto; }
     video, canvas { width:100%; border-radius:12px; background:#000; }
-    #processedMainCanvas { image-rendering:auto; min-height:520px; object-fit:contain; }
+    #processedMainCanvas {
+      width:100%;
+      height:80vh;
+      border-radius:12px;
+      background:#000;
+      image-rendering:pixelated;
+      object-fit:contain;
+    }
     #overlay { position:absolute; left:0; top:0; pointer-events:none; }
     .row { display:flex; justify-content:space-between; gap:12px; border-bottom:1px solid #333; padding:8px 0; }
     .hint { color:#ccc; line-height:1.45; font-size:15px; }
