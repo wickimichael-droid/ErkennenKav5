@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Sortierhilfe V3: 5 erkennen</title>
+  <title>Sortierhilfe V4: 5 erkennen</title>
   <style>
     body { margin:0; font-family:Arial,sans-serif; background:#111; color:#fff; }
     header { padding:14px 18px; background:#222; display:flex; gap:10px; align-items:center; flex-wrap:wrap; position:sticky; top:0; z-index:5; }
@@ -27,39 +27,19 @@
     .counter { font-size:20px; font-weight:bold; }
 
     .settingsWindow {
-      position:fixed;
-      right:20px;
-      top:82px;
-      width:380px;
-      max-width:calc(100vw - 40px);
-      max-height:calc(100vh - 110px);
-      overflow:auto;
-      background:#252525;
-      border:1px solid #555;
-      border-radius:16px;
-      box-shadow:0 12px 40px rgba(0,0,0,.55);
-      z-index:20;
-      display:none;
+      position:fixed; right:20px; top:82px; width:410px; max-width:calc(100vw - 40px);
+      max-height:calc(100vh - 110px); overflow:auto; background:#252525; border:1px solid #555;
+      border-radius:16px; box-shadow:0 12px 40px rgba(0,0,0,.55); z-index:20; display:none;
     }
     .settingsWindow.open { display:block; }
-    .settingsHeader {
-      display:flex;
-      justify-content:space-between;
-      align-items:center;
-      padding:12px 14px;
-      border-bottom:1px solid #444;
-      background:#303030;
-      border-radius:16px 16px 0 0;
-      cursor:move;
-    }
+    .settingsHeader { display:flex; justify-content:space-between; align-items:center; padding:12px 14px; border-bottom:1px solid #444; background:#303030; border-radius:16px 16px 0 0; cursor:move; }
     .settingsBody { padding:14px; }
     .setting { margin-bottom:16px; }
     .setting label { display:flex; justify-content:space-between; gap:8px; margin-bottom:6px; font-weight:bold; }
-    .setting input[type="range"] { width:100%; }
+    .setting input[type="range"], .setting select { width:100%; box-sizing:border-box; }
     .setting small { display:block; color:#bbb; margin-top:4px; line-height:1.35; }
     .checkboxRow { display:flex; align-items:center; gap:10px; margin:10px 0; }
     .miniGrid { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
-
     @media(max-width:900px){ main{grid-template-columns:1fr;} #status{font-size:34px;} }
   </style>
 </head>
@@ -77,50 +57,72 @@
 
 <div id="settingsWindow" class="settingsWindow">
   <div id="settingsHeader" class="settingsHeader">
-    <strong>Kameraeinstellungen</strong>
+    <strong>Kameraeinstellungen V4</strong>
     <button id="closeSettingsBtn">X</button>
   </div>
   <div class="settingsBody">
     <div class="setting">
-      <label><span>ROI-Grösse</span><span id="roiScaleValue">22%</span></label>
-      <input id="roiScale" type="range" min="10" max="45" step="1" value="22">
-      <small>Je kleiner, desto mehr Fokus auf die Zahl. Wenn Löcher sichtbar sind: kleiner stellen.</small>
+      <label><span>Bilddarstellung</span><span id="modeValue">Relief</span></label>
+      <select id="modeSelect">
+        <option value="emboss">Relief / Prägung</option>
+        <option value="contrast">Kontrast verstärkt</option>
+        <option value="dark">Dunkle Prägung</option>
+        <option value="bright">Helle Prägung</option>
+        <option value="meanDiff">Abweichung vom Mittelwert</option>
+        <option value="edges">Kanten</option>
+        <option value="rawGray">Grauwert normalisiert</option>
+      </select>
+      <small>Für flache Prägungen meistens zuerst „Relief / Prägung“ oder „Kontrast verstärkt“ testen.</small>
+    </div>
+
+    <div class="setting">
+      <label><span>ROI-Grösse</span><span id="roiScaleValue">18%</span></label>
+      <input id="roiScale" type="range" min="8" max="45" step="1" value="18">
+      <small>So klein wie möglich einstellen, damit die Löcher aus dem Prüfbild verschwinden.</small>
     </div>
 
     <div class="setting">
       <label><span>ROI horizontal</span><span id="roiXValue">0</span></label>
       <input id="roiX" type="range" min="-40" max="40" step="1" value="0">
-      <small>Verschiebt den Prüfausschnitt nach links/rechts.</small>
     </div>
 
     <div class="setting">
       <label><span>ROI vertikal</span><span id="roiYValue">0</span></label>
       <input id="roiY" type="range" min="-40" max="40" step="1" value="0">
-      <small>Verschiebt den Prüfausschnitt nach oben/unten.</small>
     </div>
 
     <div class="setting">
-      <label><span>Weichzeichnen</span><span id="blurValue">2</span></label>
-      <input id="blurLevel" type="range" min="0" max="8" step="1" value="2">
-      <small>Reduziert Rauschen. Bei unscharfer Zahl nicht zu hoch stellen.</small>
+      <label><span>Weichzeichnen</span><span id="blurValue">1</span></label>
+      <input id="blurLevel" type="range" min="0" max="10" step="1" value="1">
+      <small>Bei Prägung eher niedrig halten. Zu viel Weichzeichnen löscht die Zahl.</small>
+    </div>
+
+    <div class="setting">
+      <label><span>Kontrastverstärkung</span><span id="contrastValue">2.5</span></label>
+      <input id="contrastBoost" type="range" min="0.5" max="8" step="0.1" value="2.5">
+      <small>Erhöht kleine Helligkeitsunterschiede der Prägung.</small>
     </div>
 
     <div class="setting">
       <label><span>Schwarz-Weiss-Offset</span><span id="bwOffsetValue">0</span></label>
-      <input id="bwOffset" type="range" min="-60" max="60" step="1" value="0">
-      <small>Hilft, wenn die Zahl zu hell oder zu dunkel erkannt wird.</small>
+      <input id="bwOffset" type="range" min="-80" max="80" step="1" value="0">
+      <small>Nur relevant bei Dunkel/Hell/Kanten.</small>
     </div>
 
     <div class="setting">
-      <label><span>Kanten-Empfindlichkeit</span><span id="edgeValue">1</span></label>
-      <input id="edgeSensitivity" type="range" min="1" max="5" step="1" value="1">
-      <small>Höher = nur stärkere Kanten. Wenn zu viel Rauschen sichtbar ist: erhöhen.</small>
+      <label><span>Relief-Stärke</span><span id="embossValue">2</span></label>
+      <input id="embossStrength" type="range" min="1" max="6" step="1" value="2">
+      <small>Verstärkt flache, geprägte Konturen. Bei zu viel Rauschen tiefer stellen.</small>
     </div>
 
     <div class="setting">
-      <label><span>Mindest-Differenz</span><span id="minDiffValue">0.035</span></label>
-      <input id="minDiff" type="range" min="0.000" max="0.120" step="0.005" value="0.035">
-      <small>Höher = weniger falsche rote Treffer, aber mehr Orange/Unsicher.</small>
+      <label><span>Kanten-Empfindlichkeit</span><span id="edgeValue">2</span></label>
+      <input id="edgeSensitivity" type="range" min="1" max="5" step="1" value="2">
+    </div>
+
+    <div class="setting">
+      <label><span>Mindest-Differenz</span><span id="minDiffValue">0.040</span></label>
+      <input id="minDiff" type="range" min="0.000" max="0.150" step="0.005" value="0.040">
     </div>
 
     <div class="checkboxRow">
@@ -129,12 +131,14 @@
     </div>
 
     <div class="miniGrid">
-      <button id="presetNumberBtn">Preset: Zahl</button>
+      <button id="presetEmbossBtn">Preset: Prägung</button>
+      <button id="presetContrastBtn">Preset: Kontrast</button>
+      <button id="presetDarkBtn">Preset: Dunkel</button>
       <button id="presetStableBtn">Preset: Stabil</button>
     </div>
 
     <p class="hint">
-      Vorgehen: ROI so klein machen, dass fast nur die Prägung sichtbar ist. Danach Weichzeichnen und Kanten so einstellen, dass im verarbeiteten Prüfbild hauptsächlich die Zahl sichtbar bleibt.
+      Erst die Darstellung so einstellen, dass die Zahl im Prüfbild klar sichtbar ist. Danach Muster löschen und neu trainieren.
     </p>
   </div>
 </div>
@@ -146,8 +150,7 @@
       <canvas id="overlay"></canvas>
     </div>
     <p class="hint">
-      Version 3: ROI, Weichzeichnen und Kanten kannst du live im Fenster „Kameraeinstellungen“ einstellen.
-      Ziel: Im verarbeiteten Prüfbild soll möglichst nur die geprägte Zahl sichtbar sein, nicht die Löcher.
+      V4: Nicht nur Kanten. Du kannst die Bilddarstellung wechseln. Für deine flache Prägung ist „Relief / Prägung“ wahrscheinlich besser als reine Kanten.
     </p>
   </section>
 
@@ -166,9 +169,7 @@
     <h3>Verarbeitetes Prüfbild</h3>
     <canvas id="processedCanvas" class="smallCanvas" width="64" height="64"></canvas>
 
-    <p class="hint">
-      Wichtig: Nach grossen Änderungen bei ROI/Weichzeichnen/Kanten die Muster löschen und neu speichern.
-    </p>
+    <p class="hint">Ziel: Die 5 muss im verarbeiteten Prüfbild deutlich anders aussehen als 1,2,3,4,6,7,8.</p>
   </section>
 </main>
 
@@ -177,474 +178,198 @@ const SAMPLE_SIZE = 64;
 const MAX_TEMPLATES_PER_GROUP = 100;
 const ROTATION_ANGLES = [-8, -4, 0, 4, 8];
 
-const video = document.getElementById('video');
-const overlay = document.getElementById('overlay');
+const $ = id => document.getElementById(id);
+const video = $('video');
+const overlay = $('overlay');
 const overlayCtx = overlay.getContext('2d');
-const roiCanvas = document.getElementById('roiCanvas');
+const roiCanvas = $('roiCanvas');
 const roiCtx = roiCanvas.getContext('2d', { willReadFrequently:true });
-const processedCanvas = document.getElementById('processedCanvas');
+const processedCanvas = $('processedCanvas');
 const processedCtx = processedCanvas.getContext('2d', { willReadFrequently:true });
 
-const startBtn = document.getElementById('startBtn');
-const save5Btn = document.getElementById('save5Btn');
-const saveNot5Btn = document.getElementById('saveNot5Btn');
-const clearBtn = document.getElementById('clearBtn');
-const cameraSelect = document.getElementById('cameraSelect');
-const statusBox = document.getElementById('status');
-const score5El = document.getElementById('score5');
-const scoreNot5El = document.getElementById('scoreNot5');
-const diffScoreEl = document.getElementById('diffScore');
-const decisionEl = document.getElementById('decision');
-const count5El = document.getElementById('count5');
-const countNot5El = document.getElementById('countNot5');
-const thresholdSlider = document.getElementById('threshold');
-const thresholdValue = document.getElementById('thresholdValue');
-
-const settingsBtn = document.getElementById('settingsBtn');
-const settingsWindow = document.getElementById('settingsWindow');
-const closeSettingsBtn = document.getElementById('closeSettingsBtn');
-const settingsHeader = document.getElementById('settingsHeader');
-
-const roiScaleEl = document.getElementById('roiScale');
-const roiXEl = document.getElementById('roiX');
-const roiYEl = document.getElementById('roiY');
-const blurLevelEl = document.getElementById('blurLevel');
-const bwOffsetEl = document.getElementById('bwOffset');
-const edgeSensitivityEl = document.getElementById('edgeSensitivity');
-const minDiffEl = document.getElementById('minDiff');
-const rotationOnEl = document.getElementById('rotationOn');
-
-const roiScaleValue = document.getElementById('roiScaleValue');
-const roiXValue = document.getElementById('roiXValue');
-const roiYValue = document.getElementById('roiYValue');
-const blurValue = document.getElementById('blurValue');
-const bwOffsetValue = document.getElementById('bwOffsetValue');
-const edgeValue = document.getElementById('edgeValue');
-const minDiffValue = document.getElementById('minDiffValue');
-
-const presetNumberBtn = document.getElementById('presetNumberBtn');
-const presetStableBtn = document.getElementById('presetStableBtn');
+const controls = {
+  modeSelect: $('modeSelect'), roiScale: $('roiScale'), roiX: $('roiX'), roiY: $('roiY'), blurLevel: $('blurLevel'),
+  contrastBoost: $('contrastBoost'), bwOffset: $('bwOffset'), embossStrength: $('embossStrength'),
+  edgeSensitivity: $('edgeSensitivity'), minDiff: $('minDiff'), rotationOn: $('rotationOn')
+};
 
 let stream = null;
-let templates5 = loadTemplates('templates5_v3');
-let templatesNot5 = loadTemplates('templatesNot5_v3');
-let threshold = Number(thresholdSlider.value);
+let templates5 = loadTemplates('templates5_v4');
+let templatesNot5 = loadTemplates('templatesNot5_v4');
+let threshold = Number($('threshold').value);
 let loopStarted = false;
 let settings = loadSettings();
 
 applySettingsToControls();
 updateCounts();
 
-thresholdSlider.addEventListener('input', () => {
-  threshold = Number(thresholdSlider.value);
-  thresholdValue.textContent = threshold.toFixed(2);
-});
+$('threshold').addEventListener('input', () => { threshold = Number($('threshold').value); $('thresholdValue').textContent = threshold.toFixed(2); });
+$('settingsBtn').addEventListener('click', () => $('settingsWindow').classList.toggle('open'));
+$('closeSettingsBtn').addEventListener('click', () => $('settingsWindow').classList.remove('open'));
 
-settingsBtn.addEventListener('click', () => settingsWindow.classList.toggle('open'));
-closeSettingsBtn.addEventListener('click', () => settingsWindow.classList.remove('open'));
-
-[roiScaleEl, roiXEl, roiYEl, blurLevelEl, bwOffsetEl, edgeSensitivityEl, minDiffEl, rotationOnEl].forEach(el => {
+Object.values(controls).forEach(el => {
   el.addEventListener('input', readSettingsFromControls);
   el.addEventListener('change', readSettingsFromControls);
 });
 
-presetNumberBtn.addEventListener('click', () => {
-  settings.roiScale = 18;
-  settings.roiX = 0;
-  settings.roiY = 0;
-  settings.blurLevel = 2;
-  settings.bwOffset = 0;
-  settings.edgeSensitivity = 2;
-  settings.minDiff = 0.035;
-  settings.rotationOn = true;
-  saveSettings();
-  applySettingsToControls();
-});
+$('presetEmbossBtn').addEventListener('click', () => setPreset({ mode:'emboss', roiScale:16, blurLevel:1, contrastBoost:3.5, bwOffset:0, embossStrength:3, edgeSensitivity:2, minDiff:0.04, rotationOn:true }));
+$('presetContrastBtn').addEventListener('click', () => setPreset({ mode:'contrast', roiScale:16, blurLevel:1, contrastBoost:5.0, bwOffset:0, embossStrength:2, edgeSensitivity:2, minDiff:0.04, rotationOn:true }));
+$('presetDarkBtn').addEventListener('click', () => setPreset({ mode:'dark', roiScale:16, blurLevel:2, contrastBoost:3.0, bwOffset:-8, embossStrength:2, edgeSensitivity:2, minDiff:0.05, rotationOn:true }));
+$('presetStableBtn').addEventListener('click', () => setPreset({ mode:'meanDiff', roiScale:18, blurLevel:3, contrastBoost:4.0, bwOffset:0, embossStrength:2, edgeSensitivity:3, minDiff:0.06, rotationOn:false }));
 
-presetStableBtn.addEventListener('click', () => {
-  settings.roiScale = 22;
-  settings.roiX = 0;
-  settings.roiY = 0;
-  settings.blurLevel = 4;
-  settings.bwOffset = 5;
-  settings.edgeSensitivity = 3;
-  settings.minDiff = 0.055;
-  settings.rotationOn = false;
+function setPreset(p) {
+  settings = {...settings, ...p};
   saveSettings();
   applySettingsToControls();
-});
+}
 
 function loadSettings() {
-  const defaults = { roiScale:22, roiX:0, roiY:0, blurLevel:2, bwOffset:0, edgeSensitivity:1, minDiff:0.035, rotationOn:true };
-  try { return {...defaults, ...JSON.parse(localStorage.getItem('cameraSettings_v3') || '{}')}; }
-  catch { return defaults; }
+  const defaults = { mode:'emboss', roiScale:18, roiX:0, roiY:0, blurLevel:1, contrastBoost:2.5, bwOffset:0, embossStrength:2, edgeSensitivity:2, minDiff:0.04, rotationOn:true };
+  try { return {...defaults, ...JSON.parse(localStorage.getItem('cameraSettings_v4') || '{}')}; } catch { return defaults; }
 }
-
-function saveSettings() {
-  localStorage.setItem('cameraSettings_v3', JSON.stringify(settings));
-}
-
+function saveSettings() { localStorage.setItem('cameraSettings_v4', JSON.stringify(settings)); }
 function applySettingsToControls() {
-  roiScaleEl.value = settings.roiScale;
-  roiXEl.value = settings.roiX;
-  roiYEl.value = settings.roiY;
-  blurLevelEl.value = settings.blurLevel;
-  bwOffsetEl.value = settings.bwOffset;
-  edgeSensitivityEl.value = settings.edgeSensitivity;
-  minDiffEl.value = settings.minDiff;
-  rotationOnEl.checked = settings.rotationOn;
+  controls.modeSelect.value = settings.mode;
+  controls.roiScale.value = settings.roiScale;
+  controls.roiX.value = settings.roiX;
+  controls.roiY.value = settings.roiY;
+  controls.blurLevel.value = settings.blurLevel;
+  controls.contrastBoost.value = settings.contrastBoost;
+  controls.bwOffset.value = settings.bwOffset;
+  controls.embossStrength.value = settings.embossStrength;
+  controls.edgeSensitivity.value = settings.edgeSensitivity;
+  controls.minDiff.value = settings.minDiff;
+  controls.rotationOn.checked = settings.rotationOn;
   updateSettingLabels();
 }
-
 function readSettingsFromControls() {
-  settings.roiScale = Number(roiScaleEl.value);
-  settings.roiX = Number(roiXEl.value);
-  settings.roiY = Number(roiYEl.value);
-  settings.blurLevel = Number(blurLevelEl.value);
-  settings.bwOffset = Number(bwOffsetEl.value);
-  settings.edgeSensitivity = Number(edgeSensitivityEl.value);
-  settings.minDiff = Number(minDiffEl.value);
-  settings.rotationOn = rotationOnEl.checked;
-  updateSettingLabels();
-  saveSettings();
+  settings.mode = controls.modeSelect.value;
+  settings.roiScale = Number(controls.roiScale.value);
+  settings.roiX = Number(controls.roiX.value);
+  settings.roiY = Number(controls.roiY.value);
+  settings.blurLevel = Number(controls.blurLevel.value);
+  settings.contrastBoost = Number(controls.contrastBoost.value);
+  settings.bwOffset = Number(controls.bwOffset.value);
+  settings.embossStrength = Number(controls.embossStrength.value);
+  settings.edgeSensitivity = Number(controls.edgeSensitivity.value);
+  settings.minDiff = Number(controls.minDiff.value);
+  settings.rotationOn = controls.rotationOn.checked;
+  updateSettingLabels(); saveSettings();
 }
-
 function updateSettingLabels() {
-  roiScaleValue.textContent = `${settings.roiScale}%`;
-  roiXValue.textContent = settings.roiX;
-  roiYValue.textContent = settings.roiY;
-  blurValue.textContent = settings.blurLevel;
-  bwOffsetValue.textContent = settings.bwOffset;
-  edgeValue.textContent = settings.edgeSensitivity;
-  minDiffValue.textContent = Number(settings.minDiff).toFixed(3);
+  const names = {emboss:'Relief', contrast:'Kontrast', dark:'Dunkel', bright:'Hell', meanDiff:'Mittelwert', edges:'Kanten', rawGray:'Grauwert'};
+  $('modeValue').textContent = names[settings.mode] || settings.mode;
+  $('roiScaleValue').textContent = `${settings.roiScale}%`;
+  $('roiXValue').textContent = settings.roiX;
+  $('roiYValue').textContent = settings.roiY;
+  $('blurValue').textContent = settings.blurLevel;
+  $('contrastValue').textContent = Number(settings.contrastBoost).toFixed(1);
+  $('bwOffsetValue').textContent = settings.bwOffset;
+  $('embossValue').textContent = settings.embossStrength;
+  $('edgeValue').textContent = settings.edgeSensitivity;
+  $('minDiffValue').textContent = Number(settings.minDiff).toFixed(3);
 }
 
-function setStatus(text, cls) {
-  statusBox.textContent = text;
-  statusBox.className = cls;
-}
+function setStatus(text, cls) { $('status').textContent = text; $('status').className = cls; }
 
 async function listCameras() {
   const devices = await navigator.mediaDevices.enumerateDevices();
   const cameras = devices.filter(d => d.kind === 'videoinput');
-  cameraSelect.innerHTML = '';
+  $('cameraSelect').innerHTML = '';
   cameras.forEach((cam, index) => {
-    const opt = document.createElement('option');
-    opt.value = cam.deviceId;
-    opt.textContent = cam.label || `Kamera ${index + 1}`;
-    cameraSelect.appendChild(opt);
+    const opt = document.createElement('option'); opt.value = cam.deviceId; opt.textContent = cam.label || `Kamera ${index + 1}`; $('cameraSelect').appendChild(opt);
   });
 }
-
 async function startCamera() {
-  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-    alert('Kamera wird nicht unterstützt. Bitte Chrome oder Edge nutzen.');
-    return;
-  }
-
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { alert('Bitte Chrome oder Edge verwenden.'); return; }
   if (stream) stream.getTracks().forEach(t => t.stop());
-
-  const deviceId = cameraSelect.value || undefined;
-  stream = await navigator.mediaDevices.getUserMedia({
-    video: deviceId ? { deviceId:{ exact:deviceId }, width:1280, height:720 } : { width:1280, height:720 },
-    audio:false
-  });
-  video.srcObject = stream;
-  await video.play();
-  await listCameras();
-  setStatus('KAMERA LÄUFT', 'gray');
-
-  if (!loopStarted) {
-    loopStarted = true;
-    requestAnimationFrame(loop);
-  }
+  const deviceId = $('cameraSelect').value || undefined;
+  stream = await navigator.mediaDevices.getUserMedia({ video: deviceId ? {deviceId:{exact:deviceId}, width:1280, height:720} : {width:1280, height:720}, audio:false });
+  video.srcObject = stream; await video.play(); await listCameras(); setStatus('KAMERA LÄUFT', 'gray');
+  if (!loopStarted) { loopStarted = true; requestAnimationFrame(loop); }
 }
-
 function getRoiRect() {
-  const w = video.videoWidth;
-  const h = video.videoHeight;
-  const size = Math.round(Math.min(w, h) * (settings.roiScale / 100));
-  const x = Math.round((w - size) / 2 + (settings.roiX / 100) * w);
-  const y = Math.round((h - size) / 2 + (settings.roiY / 100) * h);
-  return { x:Math.max(0, Math.min(w-size, x)), y:Math.max(0, Math.min(h-size, y)), size };
+  const w = video.videoWidth, h = video.videoHeight;
+  const size = Math.round(Math.min(w,h) * (settings.roiScale/100));
+  const x = Math.round((w-size)/2 + (settings.roiX/100)*w);
+  const y = Math.round((h-size)/2 + (settings.roiY/100)*h);
+  return {x:Math.max(0,Math.min(w-size,x)), y:Math.max(0,Math.min(h-size,y)), size};
 }
-
 function drawOverlay() {
-  overlay.width = video.clientWidth;
-  overlay.height = video.clientHeight;
-  overlayCtx.clearRect(0,0,overlay.width,overlay.height);
-
-  const {x,y,size} = getRoiRect();
-  const sx = overlay.width / video.videoWidth;
-  const sy = overlay.height / video.videoHeight;
-
-  overlayCtx.strokeStyle = 'white';
-  overlayCtx.lineWidth = 4;
-  overlayCtx.strokeRect(x*sx, y*sy, size*sx, size*sy);
-
-  overlayCtx.strokeStyle = 'rgba(255,255,255,0.6)';
-  overlayCtx.lineWidth = 1;
-  overlayCtx.beginPath();
-  overlayCtx.moveTo((x+size/2)*sx, y*sy);
-  overlayCtx.lineTo((x+size/2)*sx, (y+size)*sy);
-  overlayCtx.moveTo(x*sx, (y+size/2)*sy);
-  overlayCtx.lineTo((x+size)*sx, (y+size/2)*sy);
-  overlayCtx.stroke();
+  overlay.width = video.clientWidth; overlay.height = video.clientHeight; overlayCtx.clearRect(0,0,overlay.width,overlay.height);
+  const {x,y,size} = getRoiRect(); const sx = overlay.width/video.videoWidth; const sy = overlay.height/video.videoHeight;
+  overlayCtx.strokeStyle = 'white'; overlayCtx.lineWidth = 4; overlayCtx.strokeRect(x*sx,y*sy,size*sx,size*sy);
+  overlayCtx.strokeStyle = 'rgba(255,255,255,.6)'; overlayCtx.lineWidth = 1; overlayCtx.beginPath();
+  overlayCtx.moveTo((x+size/2)*sx,y*sy); overlayCtx.lineTo((x+size/2)*sx,(y+size)*sy);
+  overlayCtx.moveTo(x*sx,(y+size/2)*sy); overlayCtx.lineTo((x+size)*sx,(y+size/2)*sy); overlayCtx.stroke();
 }
-
 function captureRoiRaw() {
   if (!video.videoWidth) return null;
-  const {x,y,size} = getRoiRect();
-  roiCtx.drawImage(video, x, y, size, size, 0, 0, roiCanvas.width, roiCanvas.height);
-  return {x,y,size};
+  const r = getRoiRect(); roiCtx.drawImage(video, r.x,r.y,r.size,r.size, 0,0,roiCanvas.width,roiCanvas.height); return r;
 }
-
 function captureProcessedVariants() {
-  const rect = captureRoiRaw();
-  if (!rect) return [];
-  const angles = settings.rotationOn ? ROTATION_ANGLES : [0];
-  const variants = [];
-
+  const rect = captureRoiRaw(); if (!rect) return [];
+  const angles = settings.rotationOn ? ROTATION_ANGLES : [0]; const variants=[];
   for (const angle of angles) {
-    const temp = document.createElement('canvas');
-    temp.width = SAMPLE_SIZE;
-    temp.height = SAMPLE_SIZE;
-    const ctx = temp.getContext('2d', { willReadFrequently:true });
-    ctx.save();
-    ctx.translate(SAMPLE_SIZE/2, SAMPLE_SIZE/2);
-    ctx.rotate(angle * Math.PI / 180);
-    ctx.drawImage(video, rect.x, rect.y, rect.size, rect.size, -SAMPLE_SIZE/2, -SAMPLE_SIZE/2, SAMPLE_SIZE, SAMPLE_SIZE);
-    ctx.restore();
-    variants.push(preprocess(ctx.getImageData(0,0,SAMPLE_SIZE,SAMPLE_SIZE), angle === 0));
+    const temp=document.createElement('canvas'); temp.width=SAMPLE_SIZE; temp.height=SAMPLE_SIZE;
+    const ctx=temp.getContext('2d',{willReadFrequently:true}); ctx.save(); ctx.translate(SAMPLE_SIZE/2,SAMPLE_SIZE/2); ctx.rotate(angle*Math.PI/180);
+    ctx.drawImage(video, rect.x,rect.y,rect.size,rect.size, -SAMPLE_SIZE/2,-SAMPLE_SIZE/2,SAMPLE_SIZE,SAMPLE_SIZE); ctx.restore();
+    variants.push(preprocess(ctx.getImageData(0,0,SAMPLE_SIZE,SAMPLE_SIZE), angle===0));
   }
   return variants;
 }
 
 function preprocess(imageData, drawPreview=false) {
-  const data = imageData.data;
-  const pixelCount = imageData.width * imageData.height;
-  let gray = new Float32Array(pixelCount);
-  let sum = 0;
-
-  for (let i=0,j=0; i<data.length; i+=4,j++) {
-    const g = 0.299*data[i] + 0.587*data[i+1] + 0.114*data[i+2];
-    gray[j] = g;
-    sum += g;
-  }
-
-  gray = boxBlur(gray, SAMPLE_SIZE, SAMPLE_SIZE, settings.blurLevel);
-
-  sum = 0;
-  for (let i=0; i<gray.length; i++) sum += gray[i];
-  const mean = sum / pixelCount;
-  const limit = mean + settings.bwOffset;
-  const binary = new Uint8Array(pixelCount);
-
-  for (let i=0; i<pixelCount; i++) binary[i] = gray[i] < limit ? 1 : 0;
-
-  const edge = new Float32Array(pixelCount);
-  const sens = settings.edgeSensitivity;
-  for (let y=1; y<SAMPLE_SIZE-1; y++) {
-    for (let x=1; x<SAMPLE_SIZE-1; x++) {
-      const idx = y*SAMPLE_SIZE+x;
-      let changes = 0;
-      changes += binary[idx] !== binary[idx-1] ? 1 : 0;
-      changes += binary[idx] !== binary[idx+1] ? 1 : 0;
-      changes += binary[idx] !== binary[idx-SAMPLE_SIZE] ? 1 : 0;
-      changes += binary[idx] !== binary[idx+SAMPLE_SIZE] ? 1 : 0;
-      edge[idx] = changes >= sens ? 1 : 0;
-    }
-  }
-
-  if (drawPreview) drawProcessed(edge);
-  return edge;
+  const data=imageData.data, n=imageData.width*imageData.height;
+  let gray=new Float32Array(n); let sum=0;
+  for(let i=0,j=0;i<data.length;i+=4,j++){ const g=0.299*data[i]+0.587*data[i+1]+0.114*data[i+2]; gray[j]=g; sum+=g; }
+  gray=boxBlur(gray,SAMPLE_SIZE,SAMPLE_SIZE,settings.blurLevel);
+  sum=0; for(let i=0;i<n;i++) sum+=gray[i]; const mean=sum/n;
+  let out;
+  if(settings.mode==='edges') out=makeEdges(gray,mean);
+  else if(settings.mode==='dark') out=makeThreshold(gray,mean+settings.bwOffset,'dark');
+  else if(settings.mode==='bright') out=makeThreshold(gray,mean+settings.bwOffset,'bright');
+  else if(settings.mode==='contrast') out=makeContrast(gray,mean);
+  else if(settings.mode==='emboss') out=makeEmboss(gray);
+  else if(settings.mode==='meanDiff') out=makeMeanDiff(gray,mean);
+  else out=makeRawGray(gray,mean);
+  if(drawPreview) drawProcessed(out);
+  return out;
 }
 
-function boxBlur(src, w, h, level) {
-  if (level <= 0) return src;
-  let current = src;
-  const radius = Math.min(4, level);
-  const passes = level <= 4 ? 1 : 2;
+function makeThreshold(gray, limit, type){ const out=new Float32Array(gray.length); for(let i=0;i<gray.length;i++) out[i]=(type==='dark'? gray[i]<limit : gray[i]>limit)?1:0; return out; }
+function makeEdges(gray, mean){ const bin=makeThreshold(gray,mean+settings.bwOffset,'dark'); const out=new Float32Array(gray.length); const sens=settings.edgeSensitivity; for(let y=1;y<SAMPLE_SIZE-1;y++){ for(let x=1;x<SAMPLE_SIZE-1;x++){ const idx=y*SAMPLE_SIZE+x; let c=0; c+=bin[idx]!==bin[idx-1]?1:0; c+=bin[idx]!==bin[idx+1]?1:0; c+=bin[idx]!==bin[idx-SAMPLE_SIZE]?1:0; c+=bin[idx]!==bin[idx+SAMPLE_SIZE]?1:0; out[idx]=c>=sens?1:0; }} return out; }
+function makeContrast(gray, mean){ const out=new Float32Array(gray.length); const boost=settings.contrastBoost; for(let i=0;i<gray.length;i++){ let v=0.5+((gray[i]-mean)/255)*boost; out[i]=Math.max(0,Math.min(1,v)); } return out; }
+function makeMeanDiff(gray, mean){ const out=new Float32Array(gray.length); const boost=settings.contrastBoost; for(let i=0;i<gray.length;i++){ out[i]=Math.max(0,Math.min(1,Math.abs(gray[i]-mean)/80*boost)); } return out; }
+function makeRawGray(gray, mean){ const out=new Float32Array(gray.length); for(let i=0;i<gray.length;i++) out[i]=Math.max(0,Math.min(1,gray[i]/255)); return out; }
+function makeEmboss(gray){ const out=new Float32Array(gray.length); const s=settings.embossStrength; for(let y=1;y<SAMPLE_SIZE-1;y++){ for(let x=1;x<SAMPLE_SIZE-1;x++){ const idx=y*SAMPLE_SIZE+x; const a=gray[(y-1)*SAMPLE_SIZE+(x-1)]; const b=gray[(y+1)*SAMPLE_SIZE+(x+1)]; const v=0.5+((b-a)/255)*s*settings.contrastBoost; out[idx]=Math.max(0,Math.min(1,v)); }} return out; }
+function boxBlur(src,w,h,level){ if(level<=0)return src; let cur=src; const radius=Math.min(4,level), passes=level<=4?1:2; for(let p=0;p<passes;p++){ const out=new Float32Array(src.length); for(let y=0;y<h;y++){ for(let x=0;x<w;x++){ let sum=0,count=0; for(let dy=-radius;dy<=radius;dy++){ for(let dx=-radius;dx<=radius;dx++){ const xx=x+dx,yy=y+dy; if(xx>=0&&xx<w&&yy>=0&&yy<h){sum+=cur[yy*w+xx];count++;}}} out[y*w+x]=sum/count; }} cur=out; } return cur; }
+function drawProcessed(arr){ const img=processedCtx.createImageData(SAMPLE_SIZE,SAMPLE_SIZE); for(let i=0;i<arr.length;i++){ const v=Math.round(Math.max(0,Math.min(1,arr[i]))*255); img.data[i*4]=v; img.data[i*4+1]=v; img.data[i*4+2]=v; img.data[i*4+3]=255; } processedCtx.putImageData(img,0,0); }
 
-  for (let pass=0; pass<passes; pass++) {
-    const out = new Float32Array(src.length);
-    for (let y=0; y<h; y++) {
-      for (let x=0; x<w; x++) {
-        let sum = 0;
-        let count = 0;
-        for (let dy=-radius; dy<=radius; dy++) {
-          for (let dx=-radius; dx<=radius; dx++) {
-            const xx = x + dx;
-            const yy = y + dy;
-            if (xx>=0 && xx<w && yy>=0 && yy<h) {
-              sum += current[yy*w+xx];
-              count++;
-            }
-          }
-        }
-        out[y*w+x] = sum / count;
-      }
-    }
-    current = out;
-  }
-  return current;
-}
+function similarity(a,b){ if(!a||!b||a.length!==b.length)return null; let dot=0,aa=0,bb=0; for(let i=0;i<a.length;i++){ dot+=a[i]*b[i]; aa+=a[i]*a[i]; bb+=b[i]*b[i]; } return (aa===0||bb===0)?0:dot/Math.sqrt(aa*bb); }
+function bestSimilarity(variants,templates){ if(!variants?.length||!templates?.length)return null; let best=-Infinity; for(const v of variants)for(const t of templates){ const s=similarity(v,t); if(s>best)best=s; } return best; }
+function packTemplate(t){ return Array.from(t).map(v=>Math.round(Math.max(0,Math.min(1,v))*15).toString(16)).join(''); }
+function unpackTemplate(str){ const arr=new Float32Array(str.length); for(let i=0;i<str.length;i++) arr[i]=parseInt(str[i],16)/15; return arr; }
+function saveTemplates(key,templates){ try{ localStorage.setItem(key,JSON.stringify(templates.map(packTemplate))); }catch(e){ alert('Browser-Speicher voll.'); throw e; } }
+function loadTemplates(key){ const raw=localStorage.getItem(key); if(!raw)return[]; try{ return JSON.parse(raw).map(unpackTemplate).filter(t=>t.length===SAMPLE_SIZE*SAMPLE_SIZE).slice(0,MAX_TEMPLATES_PER_GROUP); }catch{return[];} }
+function updateCounts(){ $('count5').textContent=`${templates5.length} / ${MAX_TEMPLATES_PER_GROUP}`; $('countNot5').textContent=`${templatesNot5.length} / ${MAX_TEMPLATES_PER_GROUP}`; }
+function addTemplate(group){ const variants=captureProcessedVariants(); if(!variants.length)return; const roi=variants[Math.floor(variants.length/2)]; if(group==='5'){ if(templates5.length>=MAX_TEMPLATES_PER_GROUP){alert('Maximal 100 Muster 5.');return;} templates5.push(roi); saveTemplates('templates5_v4',templates5); setStatus('5 GESPEICHERT','orange'); } else { if(templatesNot5.length>=MAX_TEMPLATES_PER_GROUP){alert('Maximal 100 Muster Nicht-5.');return;} templatesNot5.push(roi); saveTemplates('templatesNot5_v4',templatesNot5); setStatus('NICHT-5 GESPEICHERT','orange'); } updateCounts(); }
+$('save5Btn').addEventListener('click',()=>addTemplate('5'));
+$('saveNot5Btn').addEventListener('click',()=>addTemplate('not5'));
+$('clearBtn').addEventListener('click',()=>{ if(!confirm('Wirklich alle Muster löschen?'))return; templates5=[];templatesNot5=[]; ['templates5_v4','templatesNot5_v4','templates5_v3','templatesNot5_v3','templates5_v2','templatesNot5_v2','templates5','templatesNot5'].forEach(k=>localStorage.removeItem(k)); updateCounts(); setStatus('MUSTER GELÖSCHT','gray'); });
+$('startBtn').addEventListener('click',startCamera); $('cameraSelect').addEventListener('change',startCamera);
 
-function drawProcessed(edge) {
-  const img = processedCtx.createImageData(SAMPLE_SIZE, SAMPLE_SIZE);
-  for (let i=0; i<edge.length; i++) {
-    const v = edge[i] ? 255 : 0;
-    img.data[i*4] = v;
-    img.data[i*4+1] = v;
-    img.data[i*4+2] = v;
-    img.data[i*4+3] = 255;
-  }
-  processedCtx.putImageData(img,0,0);
-}
-
-function similarity(a,b) {
-  if (!a || !b || a.length !== b.length) return null;
-  let inter = 0;
-  let union = 0;
-  for (let i=0; i<a.length; i++) {
-    if (a[i] || b[i]) union++;
-    if (a[i] && b[i]) inter++;
-  }
-  return union === 0 ? 0 : inter / union;
-}
-
-function bestSimilarity(variants, templates) {
-  if (!variants || variants.length === 0 || !templates || templates.length === 0) return null;
-  let best = -Infinity;
-  for (const v of variants) {
-    for (const t of templates) {
-      const s = similarity(v,t);
-      if (s !== null && s > best) best = s;
-    }
-  }
-  return best;
-}
-
-function saveTemplates(key, templates) {
-  try {
-    const packed = templates.map(t => Array.from(t).join(''));
-    localStorage.setItem(key, JSON.stringify(packed));
-  } catch(e) {
-    alert('Browser-Speicher voll. Bitte Muster löschen oder anderen Browser verwenden.');
-    throw e;
-  }
-}
-
-function loadTemplates(key) {
-  const raw = localStorage.getItem(key);
-  if (!raw) return [];
-  try {
-    const packed = JSON.parse(raw);
-    return packed.map(str => {
-      const arr = new Float32Array(str.length);
-      for (let i=0; i<str.length; i++) arr[i] = str[i] === '1' ? 1 : 0;
-      return arr;
-    }).filter(t => t.length === SAMPLE_SIZE*SAMPLE_SIZE).slice(0, MAX_TEMPLATES_PER_GROUP);
-  } catch { return []; }
-}
-
-function updateCounts() {
-  count5El.textContent = `${templates5.length} / ${MAX_TEMPLATES_PER_GROUP}`;
-  countNot5El.textContent = `${templatesNot5.length} / ${MAX_TEMPLATES_PER_GROUP}`;
-}
-
-function addTemplate(groupName) {
-  const variants = captureProcessedVariants();
-  if (!variants.length) return;
-  const roi = variants[Math.floor(variants.length/2)];
-
-  if (groupName === '5') {
-    if (templates5.length >= MAX_TEMPLATES_PER_GROUP) { alert('Maximal 100 Muster 5 gespeichert.'); return; }
-    templates5.push(roi);
-    saveTemplates('templates5_v3', templates5);
-    setStatus('5 GESPEICHERT', 'orange');
-  } else {
-    if (templatesNot5.length >= MAX_TEMPLATES_PER_GROUP) { alert('Maximal 100 Muster Nicht-5 gespeichert.'); return; }
-    templatesNot5.push(roi);
-    saveTemplates('templatesNot5_v3', templatesNot5);
-    setStatus('NICHT-5 GESPEICHERT', 'orange');
-  }
-  updateCounts();
-}
-
-save5Btn.addEventListener('click', () => addTemplate('5'));
-saveNot5Btn.addEventListener('click', () => addTemplate('not5'));
-clearBtn.addEventListener('click', () => {
-  if (!confirm('Wirklich alle Muster löschen?')) return;
-  templates5 = [];
-  templatesNot5 = [];
-  localStorage.removeItem('templates5_v3');
-  localStorage.removeItem('templatesNot5_v3');
-  localStorage.removeItem('templates5_v2');
-  localStorage.removeItem('templatesNot5_v2');
-  localStorage.removeItem('templates5');
-  localStorage.removeItem('templatesNot5');
-  updateCounts();
-  setStatus('MUSTER GELÖSCHT', 'gray');
-});
-
-startBtn.addEventListener('click', startCamera);
-cameraSelect.addEventListener('change', startCamera);
-
-function loop() {
-  if (!video.videoWidth) { requestAnimationFrame(loop); return; }
-
-  drawOverlay();
-  const variants = captureProcessedVariants();
-  const s5 = bestSimilarity(variants, templates5);
-  const sN = bestSimilarity(variants, templatesNot5);
-  const diff = (s5 ?? 0) - (sN ?? 0);
-
-  score5El.textContent = s5 === null ? '-' : s5.toFixed(3);
-  scoreNot5El.textContent = sN === null ? '-' : sN.toFixed(3);
-  diffScoreEl.textContent = diff.toFixed(3);
-
-  if (templates5.length === 0) {
-    setStatus('MUSTER 5 FEHLT', 'gray');
-    decisionEl.textContent = '5er speichern';
-  } else if (templatesNot5.length === 0) {
-    setStatus('NICHT-5 FEHLT', 'gray');
-    decisionEl.textContent = 'Gutteile speichern';
-  } else {
-    const isFive = s5 !== null && sN !== null && s5 >= threshold && diff >= settings.minDiff;
-    const uncertain = s5 !== null && sN !== null && Math.abs(diff) < settings.minDiff;
-
-    if (isFive) {
-      setStatus('ROT: 5 AUSSORTIEREN', 'red');
-      decisionEl.textContent = '5 erkannt';
-    } else if (uncertain) {
-      setStatus('UNSICHER', 'orange');
-      decisionEl.textContent = 'Grenzfall';
-    } else {
-      setStatus('GRÜN: NICHT 5', 'green');
-      decisionEl.textContent = 'nicht 5';
-    }
-  }
-
+function loop(){ if(!video.videoWidth){requestAnimationFrame(loop);return;} drawOverlay(); const variants=captureProcessedVariants(); const s5=bestSimilarity(variants,templates5); const sN=bestSimilarity(variants,templatesNot5); const diff=(s5??0)-(sN??0); $('score5').textContent=s5===null?'-':s5.toFixed(3); $('scoreNot5').textContent=sN===null?'-':sN.toFixed(3); $('diffScore').textContent=diff.toFixed(3);
+  if(templates5.length===0){ setStatus('MUSTER 5 FEHLT','gray'); $('decision').textContent='5er speichern'; }
+  else if(templatesNot5.length===0){ setStatus('NICHT-5 FEHLT','gray'); $('decision').textContent='Gutteile speichern'; }
+  else { const isFive=s5!==null&&sN!==null&&s5>=threshold&&diff>=settings.minDiff; const uncertain=s5!==null&&sN!==null&&Math.abs(diff)<settings.minDiff; if(isFive){setStatus('ROT: 5 AUSSORTIEREN','red');$('decision').textContent='5 erkannt';} else if(uncertain){setStatus('UNSICHER','orange');$('decision').textContent='Grenzfall';} else {setStatus('GRÜN: NICHT 5','green');$('decision').textContent='nicht 5';} }
   requestAnimationFrame(loop);
 }
 
-// Fenster innerhalb der Seite verschiebbar machen
-let drag = null;
-settingsHeader.addEventListener('mousedown', e => {
-  if (e.target.tagName === 'BUTTON') return;
-  const rect = settingsWindow.getBoundingClientRect();
-  drag = { dx:e.clientX-rect.left, dy:e.clientY-rect.top };
-});
-window.addEventListener('mousemove', e => {
-  if (!drag) return;
-  settingsWindow.style.left = `${e.clientX - drag.dx}px`;
-  settingsWindow.style.top = `${e.clientY - drag.dy}px`;
-  settingsWindow.style.right = 'auto';
-});
-window.addEventListener('mouseup', () => drag = null);
-
-listCameras().catch(() => {});
+let drag=null; $('settingsHeader').addEventListener('mousedown',e=>{ if(e.target.tagName==='BUTTON')return; const r=$('settingsWindow').getBoundingClientRect(); drag={dx:e.clientX-r.left,dy:e.clientY-r.top}; });
+window.addEventListener('mousemove',e=>{ if(!drag)return; $('settingsWindow').style.left=`${e.clientX-drag.dx}px`; $('settingsWindow').style.top=`${e.clientY-drag.dy}px`; $('settingsWindow').style.right='auto'; });
+window.addEventListener('mouseup',()=>drag=null);
+listCameras().catch(()=>{});
 </script>
 </body>
 </html>
