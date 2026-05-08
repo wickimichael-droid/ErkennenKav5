@@ -3,28 +3,23 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Sortierhilfe V4: 5 erkennen</title>
+  <title>Sortierhilfe Sichtprüfung</title>
   <style>
     body { margin:0; font-family:Arial,sans-serif; background:#111; color:#fff; }
     header { padding:14px 18px; background:#222; display:flex; gap:10px; align-items:center; flex-wrap:wrap; position:sticky; top:0; z-index:5; }
     button, select, input { font-size:15px; padding:8px 10px; border-radius:8px; border:1px solid #555; }
     button { cursor:pointer; background:#eee; color:#111; }
-    button.danger { background:#ffdddd; }
     button.blue { background:#dcecff; }
-    main { display:grid; grid-template-columns:1.5fr 1fr; gap:16px; padding:16px; }
+    main { display:grid; grid-template-columns:1.7fr .8fr; gap:16px; padding:16px; }
     .panel { background:#1d1d1d; border-radius:14px; padding:14px; }
-    .videoBox { position:relative; width:100%; max-width:900px; margin:auto; }
+    .videoBox { position:relative; width:100%; max-width:1000px; margin:auto; }
     video, canvas { width:100%; border-radius:12px; background:#000; }
+    #processedMainCanvas { image-rendering:auto; min-height:520px; object-fit:contain; }
     #overlay { position:absolute; left:0; top:0; pointer-events:none; }
-    #status { font-size:48px; font-weight:800; text-align:center; padding:26px 10px; border-radius:14px; margin-bottom:14px; background:#555; }
-    .red { background:#c00000 !important; }
-    .green { background:#008a22 !important; }
-    .orange { background:#c77700 !important; }
-    .gray { background:#555 !important; }
     .row { display:flex; justify-content:space-between; gap:12px; border-bottom:1px solid #333; padding:8px 0; }
     .hint { color:#ccc; line-height:1.45; font-size:15px; }
-    .smallCanvas { width:160px; height:160px; border:1px solid #444; border-radius:10px; background:#000; image-rendering:pixelated; }
-    .counter { font-size:20px; font-weight:bold; }
+    .smallCanvas { width:180px; height:180px; border:1px solid #444; border-radius:10px; background:#000; image-rendering:auto; }
+    .status { font-size:36px; font-weight:800; text-align:center; padding:20px 10px; border-radius:14px; margin-bottom:14px; background:#555; }
 
     .settingsWindow {
       position:fixed; right:20px; top:82px; width:410px; max-width:calc(100vw - 40px);
@@ -38,26 +33,20 @@
     .setting label { display:flex; justify-content:space-between; gap:8px; margin-bottom:6px; font-weight:bold; }
     .setting input[type="range"], .setting select { width:100%; box-sizing:border-box; }
     .setting small { display:block; color:#bbb; margin-top:4px; line-height:1.35; }
-    .checkboxRow { display:flex; align-items:center; gap:10px; margin:10px 0; }
     .miniGrid { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
-    @media(max-width:900px){ main{grid-template-columns:1fr;} #status{font-size:34px;} }
+    @media(max-width:900px){ main{grid-template-columns:1fr;} #processedMainCanvas{min-height:360px;} }
   </style>
 </head>
 <body>
 <header>
   <button id="startBtn">Kamera starten</button>
   <select id="cameraSelect"></select>
-  <button id="save5Btn">+ 5 speichern</button>
-  <button id="saveNot5Btn">+ Nicht-5 speichern</button>
-  <button id="clearBtn" class="danger">Muster löschen</button>
   <button id="settingsBtn" class="blue">Kameraeinstellungen</button>
-  <label>Schwelle <input id="threshold" type="range" min="0.20" max="0.95" step="0.01" value="0.50"></label>
-  <span id="thresholdValue">0.50</span>
 </header>
 
 <div id="settingsWindow" class="settingsWindow">
   <div id="settingsHeader" class="settingsHeader">
-    <strong>Kameraeinstellungen V4</strong>
+    <strong>Kameraeinstellungen</strong>
     <button id="closeSettingsBtn">X</button>
   </div>
   <div class="settingsBody">
@@ -72,13 +61,12 @@
         <option value="edges">Kanten</option>
         <option value="rawGray">Grauwert normalisiert</option>
       </select>
-      <small>Für flache Prägungen meistens zuerst „Relief / Prägung“ oder „Kontrast verstärkt“ testen.</small>
     </div>
 
     <div class="setting">
       <label><span>ROI-Grösse</span><span id="roiScaleValue">18%</span></label>
       <input id="roiScale" type="range" min="8" max="45" step="1" value="18">
-      <small>So klein wie möglich einstellen, damit die Löcher aus dem Prüfbild verschwinden.</small>
+      <small>So klein einstellen, dass möglichst nur die Zahl im Hauptbild sichtbar ist.</small>
     </div>
 
     <div class="setting">
@@ -94,40 +82,26 @@
     <div class="setting">
       <label><span>Weichzeichnen</span><span id="blurValue">1</span></label>
       <input id="blurLevel" type="range" min="0" max="10" step="1" value="1">
-      <small>Bei Prägung eher niedrig halten. Zu viel Weichzeichnen löscht die Zahl.</small>
     </div>
 
     <div class="setting">
       <label><span>Kontrastverstärkung</span><span id="contrastValue">2.5</span></label>
       <input id="contrastBoost" type="range" min="0.5" max="8" step="0.1" value="2.5">
-      <small>Erhöht kleine Helligkeitsunterschiede der Prägung.</small>
     </div>
 
     <div class="setting">
       <label><span>Schwarz-Weiss-Offset</span><span id="bwOffsetValue">0</span></label>
       <input id="bwOffset" type="range" min="-80" max="80" step="1" value="0">
-      <small>Nur relevant bei Dunkel/Hell/Kanten.</small>
     </div>
 
     <div class="setting">
       <label><span>Relief-Stärke</span><span id="embossValue">2</span></label>
       <input id="embossStrength" type="range" min="1" max="6" step="1" value="2">
-      <small>Verstärkt flache, geprägte Konturen. Bei zu viel Rauschen tiefer stellen.</small>
     </div>
 
     <div class="setting">
       <label><span>Kanten-Empfindlichkeit</span><span id="edgeValue">2</span></label>
       <input id="edgeSensitivity" type="range" min="1" max="5" step="1" value="2">
-    </div>
-
-    <div class="setting">
-      <label><span>Mindest-Differenz</span><span id="minDiffValue">0.040</span></label>
-      <input id="minDiff" type="range" min="0.000" max="0.150" step="0.005" value="0.040">
-    </div>
-
-    <div class="checkboxRow">
-      <input id="rotationOn" type="checkbox" checked>
-      <label for="rotationOn">Rotationstoleranz aktiv</label>
     </div>
 
     <div class="miniGrid">
@@ -137,71 +111,60 @@
       <button id="presetStableBtn">Preset: Stabil</button>
     </div>
 
-    <p class="hint">
-      Erst die Darstellung so einstellen, dass die Zahl im Prüfbild klar sichtbar ist. Danach Muster löschen und neu trainieren.
-    </p>
+    <p class="hint">Ziel: Im grossen Hauptbild soll die Kavitätszahl möglichst klar und schnell für den Menschen erkennbar sein.</p>
   </div>
 </div>
 
 <main>
   <section class="panel">
-    <div class="videoBox">
-      <!-- HAUPTBILD = VERARBEITET -->
-      <canvas id="processedMainCanvas" style="width:100%; border-radius:12px; background:#000;"></canvas>
-    </div>
-    <p class="hint">
-      Hauptanzeige zeigt jetzt das verarbeitete Bild. Der Mensch entscheidet visuell → deutlich robuster als reine Automatik.
-    </p>
+    <h2>Verarbeitetes Hauptbild</h2>
+    <canvas id="processedMainCanvas" width="640" height="640"></canvas>
+    <p class="hint">Dieses Bild nutzt du zur manuellen Sichtprüfung. Die automatische Entscheidung ist bewusst entfernt.</p>
   </section>
 
   <section class="panel">
-    <div id="status" class="gray">VISUELLE PRÜFUNG</div>
-
-    <div class="row"><span>Kavität erkennen</span><strong>Manuell</strong></div>
-
+    <div class="status">VISUELLE PRÜFUNG</div>
+    <div class="row"><span>Entscheidung</span><strong>Mensch schaut Zahl</strong></div>
     <h3>Originalausschnitt</h3>
-    <canvas id="roiCanvas" class="smallCanvas" width="160" height="160"></canvas>
-
-    <p class="hint">
-      Empfehlung:
-      - Nur noch als visuelle Sortierhilfe nutzen
-      - Mitarbeiter erkennt Zahl direkt im verarbeiteten Bild
-      - Deutlich schneller und robuster als automatische Entscheidung
-    </p>
+    <canvas id="roiCanvas" class="smallCanvas" width="180" height="180"></canvas>
+    <h3>Kamera-Livebild klein</h3>
+    <div class="videoBox">
+      <video id="video" autoplay playsinline muted></video>
+      <canvas id="overlay"></canvas>
+    </div>
   </section>
 </main>
 
 <script>
-const SAMPLE_SIZE = 64;
-const MAX_TEMPLATES_PER_GROUP = 100;
-const ROTATION_ANGLES = [-8, -4, 0, 4, 8];
-
+const SAMPLE_SIZE = 160;
 const $ = id => document.getElementById(id);
+
 const video = $('video');
 const overlay = $('overlay');
 const overlayCtx = overlay.getContext('2d');
 const roiCanvas = $('roiCanvas');
 const roiCtx = roiCanvas.getContext('2d', { willReadFrequently:true });
-const processedCanvas = $('processedCanvas');
-const processedCtx = processedCanvas.getContext('2d', { willReadFrequently:true });
+const processedMainCanvas = $('processedMainCanvas');
+const processedMainCtx = processedMainCanvas.getContext('2d', { willReadFrequently:true });
 
 const controls = {
-  modeSelect: $('modeSelect'), roiScale: $('roiScale'), roiX: $('roiX'), roiY: $('roiY'), blurLevel: $('blurLevel'),
-  contrastBoost: $('contrastBoost'), bwOffset: $('bwOffset'), embossStrength: $('embossStrength'),
-  edgeSensitivity: $('edgeSensitivity'), minDiff: $('minDiff'), rotationOn: $('rotationOn')
+  modeSelect: $('modeSelect'),
+  roiScale: $('roiScale'),
+  roiX: $('roiX'),
+  roiY: $('roiY'),
+  blurLevel: $('blurLevel'),
+  contrastBoost: $('contrastBoost'),
+  bwOffset: $('bwOffset'),
+  embossStrength: $('embossStrength'),
+  edgeSensitivity: $('edgeSensitivity')
 };
 
 let stream = null;
-let templates5 = loadTemplates('templates5_v4');
-let templatesNot5 = loadTemplates('templatesNot5_v4');
-let threshold = Number($('threshold').value);
 let loopStarted = false;
 let settings = loadSettings();
 
 applySettingsToControls();
-updateCounts();
 
-$('threshold').addEventListener('input', () => { threshold = Number($('threshold').value); $('thresholdValue').textContent = threshold.toFixed(2); });
 $('settingsBtn').addEventListener('click', () => $('settingsWindow').classList.toggle('open'));
 $('closeSettingsBtn').addEventListener('click', () => $('settingsWindow').classList.remove('open'));
 
@@ -210,10 +173,10 @@ Object.values(controls).forEach(el => {
   el.addEventListener('change', readSettingsFromControls);
 });
 
-$('presetEmbossBtn').addEventListener('click', () => setPreset({ mode:'emboss', roiScale:16, blurLevel:1, contrastBoost:3.5, bwOffset:0, embossStrength:3, edgeSensitivity:2, minDiff:0.04, rotationOn:true }));
-$('presetContrastBtn').addEventListener('click', () => setPreset({ mode:'contrast', roiScale:16, blurLevel:1, contrastBoost:5.0, bwOffset:0, embossStrength:2, edgeSensitivity:2, minDiff:0.04, rotationOn:true }));
-$('presetDarkBtn').addEventListener('click', () => setPreset({ mode:'dark', roiScale:16, blurLevel:2, contrastBoost:3.0, bwOffset:-8, embossStrength:2, edgeSensitivity:2, minDiff:0.05, rotationOn:true }));
-$('presetStableBtn').addEventListener('click', () => setPreset({ mode:'meanDiff', roiScale:18, blurLevel:3, contrastBoost:4.0, bwOffset:0, embossStrength:2, edgeSensitivity:3, minDiff:0.06, rotationOn:false }));
+$('presetEmbossBtn').addEventListener('click', () => setPreset({ mode:'emboss', roiScale:16, blurLevel:1, contrastBoost:3.5, bwOffset:0, embossStrength:3, edgeSensitivity:2 }));
+$('presetContrastBtn').addEventListener('click', () => setPreset({ mode:'contrast', roiScale:16, blurLevel:1, contrastBoost:5.0, bwOffset:0, embossStrength:2, edgeSensitivity:2 }));
+$('presetDarkBtn').addEventListener('click', () => setPreset({ mode:'dark', roiScale:16, blurLevel:2, contrastBoost:3.0, bwOffset:-8, embossStrength:2, edgeSensitivity:2 }));
+$('presetStableBtn').addEventListener('click', () => setPreset({ mode:'meanDiff', roiScale:18, blurLevel:3, contrastBoost:4.0, bwOffset:0, embossStrength:2, edgeSensitivity:3 }));
 
 function setPreset(p) {
   settings = {...settings, ...p};
@@ -222,10 +185,15 @@ function setPreset(p) {
 }
 
 function loadSettings() {
-  const defaults = { mode:'emboss', roiScale:18, roiX:0, roiY:0, blurLevel:1, contrastBoost:2.5, bwOffset:0, embossStrength:2, edgeSensitivity:2, minDiff:0.04, rotationOn:true };
-  try { return {...defaults, ...JSON.parse(localStorage.getItem('cameraSettings_v4') || '{}')}; } catch { return defaults; }
+  const defaults = { mode:'emboss', roiScale:18, roiX:0, roiY:0, blurLevel:1, contrastBoost:2.5, bwOffset:0, embossStrength:2, edgeSensitivity:2 };
+  try { return {...defaults, ...JSON.parse(localStorage.getItem('cameraSettings_visual_v1') || '{}')}; }
+  catch { return defaults; }
 }
-function saveSettings() { localStorage.setItem('cameraSettings_v4', JSON.stringify(settings)); }
+
+function saveSettings() {
+  localStorage.setItem('cameraSettings_visual_v1', JSON.stringify(settings));
+}
+
 function applySettingsToControls() {
   controls.modeSelect.value = settings.mode;
   controls.roiScale.value = settings.roiScale;
@@ -236,10 +204,9 @@ function applySettingsToControls() {
   controls.bwOffset.value = settings.bwOffset;
   controls.embossStrength.value = settings.embossStrength;
   controls.edgeSensitivity.value = settings.edgeSensitivity;
-  controls.minDiff.value = settings.minDiff;
-  controls.rotationOn.checked = settings.rotationOn;
   updateSettingLabels();
 }
+
 function readSettingsFromControls() {
   settings.mode = controls.modeSelect.value;
   settings.roiScale = Number(controls.roiScale.value);
@@ -250,10 +217,10 @@ function readSettingsFromControls() {
   settings.bwOffset = Number(controls.bwOffset.value);
   settings.embossStrength = Number(controls.embossStrength.value);
   settings.edgeSensitivity = Number(controls.edgeSensitivity.value);
-  settings.minDiff = Number(controls.minDiff.value);
-  settings.rotationOn = controls.rotationOn.checked;
-  updateSettingLabels(); saveSettings();
+  updateSettingLabels();
+  saveSettings();
 }
+
 function updateSettingLabels() {
   const names = {emboss:'Relief', contrast:'Kontrast', dark:'Dunkel', bright:'Hell', meanDiff:'Mittelwert', edges:'Kanten', rawGray:'Grauwert'};
   $('modeValue').textContent = names[settings.mode] || settings.mode;
@@ -265,125 +232,235 @@ function updateSettingLabels() {
   $('bwOffsetValue').textContent = settings.bwOffset;
   $('embossValue').textContent = settings.embossStrength;
   $('edgeValue').textContent = settings.edgeSensitivity;
-  $('minDiffValue').textContent = Number(settings.minDiff).toFixed(3);
 }
-
-function setStatus(text, cls) { $('status').textContent = text; $('status').className = cls; }
 
 async function listCameras() {
   const devices = await navigator.mediaDevices.enumerateDevices();
   const cameras = devices.filter(d => d.kind === 'videoinput');
   $('cameraSelect').innerHTML = '';
   cameras.forEach((cam, index) => {
-    const opt = document.createElement('option'); opt.value = cam.deviceId; opt.textContent = cam.label || `Kamera ${index + 1}`; $('cameraSelect').appendChild(opt);
+    const opt = document.createElement('option');
+    opt.value = cam.deviceId;
+    opt.textContent = cam.label || `Kamera ${index + 1}`;
+    $('cameraSelect').appendChild(opt);
   });
 }
+
 async function startCamera() {
-  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { alert('Bitte Chrome oder Edge verwenden.'); return; }
-  if (stream) stream.getTracks().forEach(t => t.stop());
-  const deviceId = $('cameraSelect').value || undefined;
-  stream = await navigator.mediaDevices.getUserMedia({ video: deviceId ? {deviceId:{exact:deviceId}, width:1280, height:720} : {width:1280, height:720}, audio:false });
-  video.srcObject = stream; await video.play(); await listCameras(); setStatus('KAMERA LÄUFT', 'gray');
-  if (!loopStarted) { loopStarted = true; requestAnimationFrame(loop); }
+  try {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      alert('Kamera wird nicht unterstützt. Bitte Chrome oder Edge verwenden.');
+      return;
+    }
+
+    if (stream) stream.getTracks().forEach(t => t.stop());
+
+    const deviceId = $('cameraSelect').value || undefined;
+    stream = await navigator.mediaDevices.getUserMedia({
+      video: deviceId ? { deviceId:{ exact:deviceId }, width:1280, height:720 } : { width:1280, height:720 },
+      audio:false
+    });
+
+    video.srcObject = stream;
+    await video.play();
+    await listCameras();
+
+    if (!loopStarted) {
+      loopStarted = true;
+      requestAnimationFrame(loop);
+    }
+  } catch (err) {
+    alert('Kamera konnte nicht gestartet werden: ' + err.message);
+    console.error(err);
+  }
 }
+
+$('startBtn').addEventListener('click', startCamera);
+$('cameraSelect').addEventListener('change', startCamera);
+
 function getRoiRect() {
-  const w = video.videoWidth, h = video.videoHeight;
+  const w = video.videoWidth;
+  const h = video.videoHeight;
   const size = Math.round(Math.min(w,h) * (settings.roiScale/100));
   const x = Math.round((w-size)/2 + (settings.roiX/100)*w);
   const y = Math.round((h-size)/2 + (settings.roiY/100)*h);
   return {x:Math.max(0,Math.min(w-size,x)), y:Math.max(0,Math.min(h-size,y)), size};
 }
+
 function drawOverlay() {
-  overlay.width = video.clientWidth; overlay.height = video.clientHeight; overlayCtx.clearRect(0,0,overlay.width,overlay.height);
-  const {x,y,size} = getRoiRect(); const sx = overlay.width/video.videoWidth; const sy = overlay.height/video.videoHeight;
-  overlayCtx.strokeStyle = 'white'; overlayCtx.lineWidth = 4; overlayCtx.strokeRect(x*sx,y*sy,size*sx,size*sy);
-  overlayCtx.strokeStyle = 'rgba(255,255,255,.6)'; overlayCtx.lineWidth = 1; overlayCtx.beginPath();
-  overlayCtx.moveTo((x+size/2)*sx,y*sy); overlayCtx.lineTo((x+size/2)*sx,(y+size)*sy);
-  overlayCtx.moveTo(x*sx,(y+size/2)*sy); overlayCtx.lineTo((x+size)*sx,(y+size/2)*sy); overlayCtx.stroke();
-}
-function captureRoiRaw() {
-  if (!video.videoWidth) return null;
-  const r = getRoiRect(); roiCtx.drawImage(video, r.x,r.y,r.size,r.size, 0,0,roiCanvas.width,roiCanvas.height); return r;
-}
-function captureProcessedVariants() {
-  const rect = captureRoiRaw(); if (!rect) return [];
-  const angles = settings.rotationOn ? ROTATION_ANGLES : [0]; const variants=[];
-  for (const angle of angles) {
-    const temp=document.createElement('canvas'); temp.width=SAMPLE_SIZE; temp.height=SAMPLE_SIZE;
-    const ctx=temp.getContext('2d',{willReadFrequently:true}); ctx.save(); ctx.translate(SAMPLE_SIZE/2,SAMPLE_SIZE/2); ctx.rotate(angle*Math.PI/180);
-    ctx.drawImage(video, rect.x,rect.y,rect.size,rect.size, -SAMPLE_SIZE/2,-SAMPLE_SIZE/2,SAMPLE_SIZE,SAMPLE_SIZE); ctx.restore();
-    variants.push(preprocess(ctx.getImageData(0,0,SAMPLE_SIZE,SAMPLE_SIZE), angle===0));
-  }
-  return variants;
+  overlay.width = video.clientWidth;
+  overlay.height = video.clientHeight;
+  overlayCtx.clearRect(0,0,overlay.width,overlay.height);
+  if (!video.videoWidth) return;
+  const {x,y,size} = getRoiRect();
+  const sx = overlay.width/video.videoWidth;
+  const sy = overlay.height/video.videoHeight;
+  overlayCtx.strokeStyle = 'white';
+  overlayCtx.lineWidth = 3;
+  overlayCtx.strokeRect(x*sx,y*sy,size*sx,size*sy);
 }
 
-function preprocess(imageData, drawPreview=false) {
-  const data=imageData.data, n=imageData.width*imageData.height;
-  let gray=new Float32Array(n); let sum=0;
-  for(let i=0,j=0;i<data.length;i+=4,j++){ const g=0.299*data[i]+0.587*data[i+1]+0.114*data[i+2]; gray[j]=g; sum+=g; }
-  gray=boxBlur(gray,SAMPLE_SIZE,SAMPLE_SIZE,settings.blurLevel);
-  sum=0; for(let i=0;i<n;i++) sum+=gray[i]; const mean=sum/n;
-  let out;
-  if(settings.mode==='edges') out=makeEdges(gray,mean);
-  else if(settings.mode==='dark') out=makeThreshold(gray,mean+settings.bwOffset,'dark');
-  else if(settings.mode==='bright') out=makeThreshold(gray,mean+settings.bwOffset,'bright');
-  else if(settings.mode==='contrast') out=makeContrast(gray,mean);
-  else if(settings.mode==='emboss') out=makeEmboss(gray);
-  else if(settings.mode==='meanDiff') out=makeMeanDiff(gray,mean);
-  else out=makeRawGray(gray,mean);
-  if(drawPreview) drawProcessed(out);
+function captureAndProcess() {
+  if (!video.videoWidth) return;
+  const r = getRoiRect();
+  roiCtx.drawImage(video, r.x,r.y,r.size,r.size, 0,0,roiCanvas.width,roiCanvas.height);
+
+  const temp = document.createElement('canvas');
+  temp.width = SAMPLE_SIZE;
+  temp.height = SAMPLE_SIZE;
+  const ctx = temp.getContext('2d', { willReadFrequently:true });
+  ctx.drawImage(video, r.x,r.y,r.size,r.size, 0,0,SAMPLE_SIZE,SAMPLE_SIZE);
+  const arr = preprocess(ctx.getImageData(0,0,SAMPLE_SIZE,SAMPLE_SIZE));
+  drawProcessed(arr);
+}
+
+function preprocess(imageData) {
+  const data = imageData.data;
+  const n = imageData.width * imageData.height;
+  let gray = new Float32Array(n);
+  let sum = 0;
+
+  for (let i=0,j=0; i<data.length; i+=4,j++) {
+    const g = 0.299*data[i] + 0.587*data[i+1] + 0.114*data[i+2];
+    gray[j] = g;
+    sum += g;
+  }
+
+  gray = boxBlur(gray, SAMPLE_SIZE, SAMPLE_SIZE, settings.blurLevel);
+  sum = 0;
+  for (let i=0;i<n;i++) sum += gray[i];
+  const mean = sum / n;
+
+  if (settings.mode === 'edges') return makeEdges(gray, mean);
+  if (settings.mode === 'dark') return makeThreshold(gray, mean + settings.bwOffset, 'dark');
+  if (settings.mode === 'bright') return makeThreshold(gray, mean + settings.bwOffset, 'bright');
+  if (settings.mode === 'contrast') return makeContrast(gray, mean);
+  if (settings.mode === 'emboss') return makeEmboss(gray);
+  if (settings.mode === 'meanDiff') return makeMeanDiff(gray, mean);
+  return makeRawGray(gray);
+}
+
+function makeThreshold(gray, limit, type) {
+  const out = new Float32Array(gray.length);
+  for (let i=0;i<gray.length;i++) out[i] = (type==='dark' ? gray[i]<limit : gray[i]>limit) ? 1 : 0;
   return out;
 }
 
-function makeThreshold(gray, limit, type){ const out=new Float32Array(gray.length); for(let i=0;i<gray.length;i++) out[i]=(type==='dark'? gray[i]<limit : gray[i]>limit)?1:0; return out; }
-function makeEdges(gray, mean){ const bin=makeThreshold(gray,mean+settings.bwOffset,'dark'); const out=new Float32Array(gray.length); const sens=settings.edgeSensitivity; for(let y=1;y<SAMPLE_SIZE-1;y++){ for(let x=1;x<SAMPLE_SIZE-1;x++){ const idx=y*SAMPLE_SIZE+x; let c=0; c+=bin[idx]!==bin[idx-1]?1:0; c+=bin[idx]!==bin[idx+1]?1:0; c+=bin[idx]!==bin[idx-SAMPLE_SIZE]?1:0; c+=bin[idx]!==bin[idx+SAMPLE_SIZE]?1:0; out[idx]=c>=sens?1:0; }} return out; }
-function makeContrast(gray, mean){ const out=new Float32Array(gray.length); const boost=settings.contrastBoost; for(let i=0;i<gray.length;i++){ let v=0.5+((gray[i]-mean)/255)*boost; out[i]=Math.max(0,Math.min(1,v)); } return out; }
-function makeMeanDiff(gray, mean){ const out=new Float32Array(gray.length); const boost=settings.contrastBoost; for(let i=0;i<gray.length;i++){ out[i]=Math.max(0,Math.min(1,Math.abs(gray[i]-mean)/80*boost)); } return out; }
-function makeRawGray(gray, mean){ const out=new Float32Array(gray.length); for(let i=0;i<gray.length;i++) out[i]=Math.max(0,Math.min(1,gray[i]/255)); return out; }
-function makeEmboss(gray){ const out=new Float32Array(gray.length); const s=settings.embossStrength; for(let y=1;y<SAMPLE_SIZE-1;y++){ for(let x=1;x<SAMPLE_SIZE-1;x++){ const idx=y*SAMPLE_SIZE+x; const a=gray[(y-1)*SAMPLE_SIZE+(x-1)]; const b=gray[(y+1)*SAMPLE_SIZE+(x+1)]; const v=0.5+((b-a)/255)*s*settings.contrastBoost; out[idx]=Math.max(0,Math.min(1,v)); }} return out; }
-function boxBlur(src,w,h,level){ if(level<=0)return src; let cur=src; const radius=Math.min(4,level), passes=level<=4?1:2; for(let p=0;p<passes;p++){ const out=new Float32Array(src.length); for(let y=0;y<h;y++){ for(let x=0;x<w;x++){ let sum=0,count=0; for(let dy=-radius;dy<=radius;dy++){ for(let dx=-radius;dx<=radius;dx++){ const xx=x+dx,yy=y+dy; if(xx>=0&&xx<w&&yy>=0&&yy<h){sum+=cur[yy*w+xx];count++;}}} out[y*w+x]=sum/count; }} cur=out; } return cur; }
-function drawProcessed(arr) {
-  const canvasMain = document.getElementById('processedMainCanvas');
-  const ctxMain = canvasMain.getContext('2d');
-
-  canvasMain.width = SAMPLE_SIZE;
-  canvasMain.height = SAMPLE_SIZE;
-
-  const img = ctxMain.createImageData(SAMPLE_SIZE, SAMPLE_SIZE);
-  for (let i = 0; i < arr.length; i++) {
-    const v = Math.round(Math.max(0, Math.min(1, arr[i])) * 255);
-    img.data[i * 4] = v;
-    img.data[i * 4 + 1] = v;
-    img.data[i * 4 + 2] = v;
-    img.data[i * 4 + 3] = 255;
+function makeEdges(gray, mean) {
+  const bin = makeThreshold(gray, mean + settings.bwOffset, 'dark');
+  const out = new Float32Array(gray.length);
+  const sens = settings.edgeSensitivity;
+  for (let y=1;y<SAMPLE_SIZE-1;y++) {
+    for (let x=1;x<SAMPLE_SIZE-1;x++) {
+      const idx = y*SAMPLE_SIZE+x;
+      let c = 0;
+      c += bin[idx] !== bin[idx-1] ? 1 : 0;
+      c += bin[idx] !== bin[idx+1] ? 1 : 0;
+      c += bin[idx] !== bin[idx-SAMPLE_SIZE] ? 1 : 0;
+      c += bin[idx] !== bin[idx+SAMPLE_SIZE] ? 1 : 0;
+      out[idx] = c >= sens ? 1 : 0;
+    }
   }
-  ctxMain.putImageData(img, 0, 0);
-}{ const img=processedCtx.createImageData(SAMPLE_SIZE,SAMPLE_SIZE); for(let i=0;i<arr.length;i++){ const v=Math.round(Math.max(0,Math.min(1,arr[i]))*255); img.data[i*4]=v; img.data[i*4+1]=v; img.data[i*4+2]=v; img.data[i*4+3]=255; } processedCtx.putImageData(img,0,0); }
+  return out;
+}
 
-function similarity(a,b){ if(!a||!b||a.length!==b.length)return null; let dot=0,aa=0,bb=0; for(let i=0;i<a.length;i++){ dot+=a[i]*b[i]; aa+=a[i]*a[i]; bb+=b[i]*b[i]; } return (aa===0||bb===0)?0:dot/Math.sqrt(aa*bb); }
-function bestSimilarity(variants,templates){ if(!variants?.length||!templates?.length)return null; let best=-Infinity; for(const v of variants)for(const t of templates){ const s=similarity(v,t); if(s>best)best=s; } return best; }
-function packTemplate(t){ return Array.from(t).map(v=>Math.round(Math.max(0,Math.min(1,v))*15).toString(16)).join(''); }
-function unpackTemplate(str){ const arr=new Float32Array(str.length); for(let i=0;i<str.length;i++) arr[i]=parseInt(str[i],16)/15; return arr; }
-function saveTemplates(key,templates){ try{ localStorage.setItem(key,JSON.stringify(templates.map(packTemplate))); }catch(e){ alert('Browser-Speicher voll.'); throw e; } }
-function loadTemplates(key){ const raw=localStorage.getItem(key); if(!raw)return[]; try{ return JSON.parse(raw).map(unpackTemplate).filter(t=>t.length===SAMPLE_SIZE*SAMPLE_SIZE).slice(0,MAX_TEMPLATES_PER_GROUP); }catch{return[];} }
-function updateCounts(){ $('count5').textContent=`${templates5.length} / ${MAX_TEMPLATES_PER_GROUP}`; $('countNot5').textContent=`${templatesNot5.length} / ${MAX_TEMPLATES_PER_GROUP}`; }
-function addTemplate(group){ const variants=captureProcessedVariants(); if(!variants.length)return; const roi=variants[Math.floor(variants.length/2)]; if(group==='5'){ if(templates5.length>=MAX_TEMPLATES_PER_GROUP){alert('Maximal 100 Muster 5.');return;} templates5.push(roi); saveTemplates('templates5_v4',templates5); setStatus('5 GESPEICHERT','orange'); } else { if(templatesNot5.length>=MAX_TEMPLATES_PER_GROUP){alert('Maximal 100 Muster Nicht-5.');return;} templatesNot5.push(roi); saveTemplates('templatesNot5_v4',templatesNot5); setStatus('NICHT-5 GESPEICHERT','orange'); } updateCounts(); }
-$('save5Btn').addEventListener('click',()=>addTemplate('5'));
-$('saveNot5Btn').addEventListener('click',()=>addTemplate('not5'));
-$('clearBtn').addEventListener('click',()=>{ if(!confirm('Wirklich alle Muster löschen?'))return; templates5=[];templatesNot5=[]; ['templates5_v4','templatesNot5_v4','templates5_v3','templatesNot5_v3','templates5_v2','templatesNot5_v2','templates5','templatesNot5'].forEach(k=>localStorage.removeItem(k)); updateCounts(); setStatus('MUSTER GELÖSCHT','gray'); });
-$('startBtn').addEventListener('click',startCamera); $('cameraSelect').addEventListener('change',startCamera);
+function makeContrast(gray, mean) {
+  const out = new Float32Array(gray.length);
+  const boost = settings.contrastBoost;
+  for (let i=0;i<gray.length;i++) {
+    const v = 0.5 + ((gray[i]-mean)/255) * boost;
+    out[i] = Math.max(0, Math.min(1, v));
+  }
+  return out;
+}
 
-function loop(){ if(!video.videoWidth){requestAnimationFrame(loop);return;} drawOverlay(); const variants=captureProcessedVariants(); const s5=bestSimilarity(variants,templates5); const sN=bestSimilarity(variants,templatesNot5); const diff=(s5??0)-(sN??0); $('score5').textContent=s5===null?'-':s5.toFixed(3); $('scoreNot5').textContent=sN===null?'-':sN.toFixed(3); $('diffScore').textContent=diff.toFixed(3);
-  if(templates5.length===0){ setStatus('MUSTER 5 FEHLT','gray'); $('decision').textContent='5er speichern'; }
-  else if(templatesNot5.length===0){ setStatus('NICHT-5 FEHLT','gray'); $('decision').textContent='Gutteile speichern'; }
-  else { const isFive=s5!==null&&sN!==null&&s5>=threshold&&diff>=settings.minDiff; const uncertain=s5!==null&&sN!==null&&Math.abs(diff)<settings.minDiff; if(isFive){setStatus('ROT: 5 AUSSORTIEREN','red');$('decision').textContent='5 erkannt';} else if(uncertain){setStatus('UNSICHER','orange');$('decision').textContent='Grenzfall';} else {setStatus('GRÜN: NICHT 5','green');$('decision').textContent='nicht 5';} }
+function makeMeanDiff(gray, mean) {
+  const out = new Float32Array(gray.length);
+  const boost = settings.contrastBoost;
+  for (let i=0;i<gray.length;i++) out[i] = Math.max(0, Math.min(1, Math.abs(gray[i]-mean)/80*boost));
+  return out;
+}
+
+function makeRawGray(gray) {
+  const out = new Float32Array(gray.length);
+  for (let i=0;i<gray.length;i++) out[i] = Math.max(0, Math.min(1, gray[i]/255));
+  return out;
+}
+
+function makeEmboss(gray) {
+  const out = new Float32Array(gray.length);
+  const s = settings.embossStrength;
+  const boost = settings.contrastBoost;
+  for (let y=1;y<SAMPLE_SIZE-1;y++) {
+    for (let x=1;x<SAMPLE_SIZE-1;x++) {
+      const idx = y*SAMPLE_SIZE+x;
+      const a = gray[(y-1)*SAMPLE_SIZE+(x-1)];
+      const b = gray[(y+1)*SAMPLE_SIZE+(x+1)];
+      const v = 0.5 + ((b-a)/255) * s * boost;
+      out[idx] = Math.max(0, Math.min(1, v));
+    }
+  }
+  return out;
+}
+
+function boxBlur(src,w,h,level) {
+  if (level <= 0) return src;
+  let cur = src;
+  const radius = Math.min(4,level);
+  const passes = level <= 4 ? 1 : 2;
+  for (let p=0;p<passes;p++) {
+    const out = new Float32Array(src.length);
+    for (let y=0;y<h;y++) {
+      for (let x=0;x<w;x++) {
+        let sum=0,count=0;
+        for (let dy=-radius;dy<=radius;dy++) {
+          for (let dx=-radius;dx<=radius;dx++) {
+            const xx=x+dx, yy=y+dy;
+            if (xx>=0 && xx<w && yy>=0 && yy<h) { sum += cur[yy*w+xx]; count++; }
+          }
+        }
+        out[y*w+x] = sum/count;
+      }
+    }
+    cur = out;
+  }
+  return cur;
+}
+
+function drawProcessed(arr) {
+  const img = processedMainCtx.createImageData(SAMPLE_SIZE, SAMPLE_SIZE);
+  for (let i=0;i<arr.length;i++) {
+    const v = Math.round(Math.max(0, Math.min(1, arr[i])) * 255);
+    img.data[i*4] = v;
+    img.data[i*4+1] = v;
+    img.data[i*4+2] = v;
+    img.data[i*4+3] = 255;
+  }
+  processedMainCtx.putImageData(img,0,0);
+}
+
+function loop() {
+  drawOverlay();
+  captureAndProcess();
   requestAnimationFrame(loop);
 }
 
-let drag=null; $('settingsHeader').addEventListener('mousedown',e=>{ if(e.target.tagName==='BUTTON')return; const r=$('settingsWindow').getBoundingClientRect(); drag={dx:e.clientX-r.left,dy:e.clientY-r.top}; });
-window.addEventListener('mousemove',e=>{ if(!drag)return; $('settingsWindow').style.left=`${e.clientX-drag.dx}px`; $('settingsWindow').style.top=`${e.clientY-drag.dy}px`; $('settingsWindow').style.right='auto'; });
-window.addEventListener('mouseup',()=>drag=null);
-listCameras().catch(()=>{});
+// Einstellungen-Fenster verschiebbar
+let drag = null;
+$('settingsHeader').addEventListener('mousedown', e => {
+  if (e.target.tagName === 'BUTTON') return;
+  const r = $('settingsWindow').getBoundingClientRect();
+  drag = {dx:e.clientX-r.left, dy:e.clientY-r.top};
+});
+window.addEventListener('mousemove', e => {
+  if (!drag) return;
+  $('settingsWindow').style.left = `${e.clientX-drag.dx}px`;
+  $('settingsWindow').style.top = `${e.clientY-drag.dy}px`;
+  $('settingsWindow').style.right = 'auto';
+});
+window.addEventListener('mouseup', () => drag = null);
+
+listCameras().catch(() => {});
 </script>
 </body>
 </html>
