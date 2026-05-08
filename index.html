@@ -146,30 +146,28 @@
 <main>
   <section class="panel">
     <div class="videoBox">
-      <video id="video" autoplay playsinline muted></video>
-      <canvas id="overlay"></canvas>
+      <!-- HAUPTBILD = VERARBEITET -->
+      <canvas id="processedMainCanvas" style="width:100%; border-radius:12px; background:#000;"></canvas>
     </div>
     <p class="hint">
-      V4: Nicht nur Kanten. Du kannst die Bilddarstellung wechseln. Für deine flache Prägung ist „Relief / Prägung“ wahrscheinlich besser als reine Kanten.
+      Hauptanzeige zeigt jetzt das verarbeitete Bild. Der Mensch entscheidet visuell → deutlich robuster als reine Automatik.
     </p>
   </section>
 
   <section class="panel">
-    <div id="status" class="gray">START</div>
-    <div class="row"><span>Bester Score 5</span><strong id="score5">-</strong></div>
-    <div class="row"><span>Bester Score Nicht-5</span><strong id="scoreNot5">-</strong></div>
-    <div class="row"><span>Differenz</span><strong id="diffScore">-</strong></div>
-    <div class="row"><span>Entscheidung</span><strong id="decision">-</strong></div>
-    <div class="row"><span>Muster 5</span><strong id="count5" class="counter">0</strong></div>
-    <div class="row"><span>Muster Nicht-5</span><strong id="countNot5" class="counter">0</strong></div>
+    <div id="status" class="gray">VISUELLE PRÜFUNG</div>
 
-    <h3>Aktueller Ausschnitt</h3>
+    <div class="row"><span>Kavität erkennen</span><strong>Manuell</strong></div>
+
+    <h3>Originalausschnitt</h3>
     <canvas id="roiCanvas" class="smallCanvas" width="160" height="160"></canvas>
 
-    <h3>Verarbeitetes Prüfbild</h3>
-    <canvas id="processedCanvas" class="smallCanvas" width="64" height="64"></canvas>
-
-    <p class="hint">Ziel: Die 5 muss im verarbeiteten Prüfbild deutlich anders aussehen als 1,2,3,4,6,7,8.</p>
+    <p class="hint">
+      Empfehlung:
+      - Nur noch als visuelle Sortierhilfe nutzen
+      - Mitarbeiter erkennt Zahl direkt im verarbeiteten Bild
+      - Deutlich schneller und robuster als automatische Entscheidung
+    </p>
   </section>
 </main>
 
@@ -344,7 +342,23 @@ function makeMeanDiff(gray, mean){ const out=new Float32Array(gray.length); cons
 function makeRawGray(gray, mean){ const out=new Float32Array(gray.length); for(let i=0;i<gray.length;i++) out[i]=Math.max(0,Math.min(1,gray[i]/255)); return out; }
 function makeEmboss(gray){ const out=new Float32Array(gray.length); const s=settings.embossStrength; for(let y=1;y<SAMPLE_SIZE-1;y++){ for(let x=1;x<SAMPLE_SIZE-1;x++){ const idx=y*SAMPLE_SIZE+x; const a=gray[(y-1)*SAMPLE_SIZE+(x-1)]; const b=gray[(y+1)*SAMPLE_SIZE+(x+1)]; const v=0.5+((b-a)/255)*s*settings.contrastBoost; out[idx]=Math.max(0,Math.min(1,v)); }} return out; }
 function boxBlur(src,w,h,level){ if(level<=0)return src; let cur=src; const radius=Math.min(4,level), passes=level<=4?1:2; for(let p=0;p<passes;p++){ const out=new Float32Array(src.length); for(let y=0;y<h;y++){ for(let x=0;x<w;x++){ let sum=0,count=0; for(let dy=-radius;dy<=radius;dy++){ for(let dx=-radius;dx<=radius;dx++){ const xx=x+dx,yy=y+dy; if(xx>=0&&xx<w&&yy>=0&&yy<h){sum+=cur[yy*w+xx];count++;}}} out[y*w+x]=sum/count; }} cur=out; } return cur; }
-function drawProcessed(arr){ const img=processedCtx.createImageData(SAMPLE_SIZE,SAMPLE_SIZE); for(let i=0;i<arr.length;i++){ const v=Math.round(Math.max(0,Math.min(1,arr[i]))*255); img.data[i*4]=v; img.data[i*4+1]=v; img.data[i*4+2]=v; img.data[i*4+3]=255; } processedCtx.putImageData(img,0,0); }
+function drawProcessed(arr) {
+  const canvasMain = document.getElementById('processedMainCanvas');
+  const ctxMain = canvasMain.getContext('2d');
+
+  canvasMain.width = SAMPLE_SIZE;
+  canvasMain.height = SAMPLE_SIZE;
+
+  const img = ctxMain.createImageData(SAMPLE_SIZE, SAMPLE_SIZE);
+  for (let i = 0; i < arr.length; i++) {
+    const v = Math.round(Math.max(0, Math.min(1, arr[i])) * 255);
+    img.data[i * 4] = v;
+    img.data[i * 4 + 1] = v;
+    img.data[i * 4 + 2] = v;
+    img.data[i * 4 + 3] = 255;
+  }
+  ctxMain.putImageData(img, 0, 0);
+}{ const img=processedCtx.createImageData(SAMPLE_SIZE,SAMPLE_SIZE); for(let i=0;i<arr.length;i++){ const v=Math.round(Math.max(0,Math.min(1,arr[i]))*255); img.data[i*4]=v; img.data[i*4+1]=v; img.data[i*4+2]=v; img.data[i*4+3]=255; } processedCtx.putImageData(img,0,0); }
 
 function similarity(a,b){ if(!a||!b||a.length!==b.length)return null; let dot=0,aa=0,bb=0; for(let i=0;i<a.length;i++){ dot+=a[i]*b[i]; aa+=a[i]*a[i]; bb+=b[i]*b[i]; } return (aa===0||bb===0)?0:dot/Math.sqrt(aa*bb); }
 function bestSimilarity(variants,templates){ if(!variants?.length||!templates?.length)return null; let best=-Infinity; for(const v of variants)for(const t of templates){ const s=similarity(v,t); if(s>best)best=s; } return best; }
